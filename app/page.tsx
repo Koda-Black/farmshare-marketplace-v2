@@ -117,9 +117,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col">
-      <section className="relative overflow-hidden bg-primary text-primary-foreground py-16 md:py-24">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
+    <div className="flex flex-col overflow-x-hidden w-full max-w-full">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-primary text-primary-foreground py-16 md:py-24 w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance leading-tight">
@@ -152,8 +153,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="testimonials" className="py-16 md:py-20 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-16 md:py-20 bg-background w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <Card className="border-2 shadow-lg">
               <CardContent className="p-8 space-y-4">
@@ -191,8 +193,208 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 bg-background border-t">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
+      {/* Available Pools Section */}
+      <section id="product" className="py-16 md:py-20 bg-background w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
+          <div className="text-center mb-12 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-balance">Available Pools</h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Join a pool and enjoy bulk pricing on premium agricultural products. Connect directly with verified
+              vendors and save money together.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {availablePools.map((pool) => (
+              <Card key={pool.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <div className="relative h-48 bg-muted">
+                  <Image src={pool.image || "/placeholder.svg"} alt={pool.product_name} fill className="object-cover" />
+                  <Badge className="absolute top-3 right-3 bg-accent text-white">
+                    {pool.slots_filled}/{pool.slots_count} filled
+                  </Badge>
+                </div>
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-lg">{pool.product_name}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{pool.product_description}</p>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{pool.vendor_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>Closes {new Date(pool.delivery_deadline).toLocaleDateString()}</span>
+                    </div>
+                    {pool.allow_home_delivery && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span>Home delivery available</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-muted-foreground">Price per slot</span>
+                      <span className="text-xl font-bold text-primary">₦{pool.price_per_slot.toLocaleString()}</span>
+                    </div>
+                    <Button
+                      onClick={() => handleJoinPool(pool.id)}
+                      className="w-full bg-accent hover:bg-accent/90 text-white"
+                      disabled={pool.slots_filled >= pool.slots_count}
+                    >
+                      {pool.slots_filled >= pool.slots_count ? "Pool Full" : "Join Pool"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Button variant="outline" size="lg" asChild>
+              <Link href="/buyer/marketplace">View All Pools →</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Pool Collaboration Section */}
+      <section id="pools" className="py-16 md:py-20 bg-secondary w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
+          <div className="text-center mb-12 space-y-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">
+              Join a pool of six to share a full cow now.
+            </h2>
+            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Whether it's choosing reusable food and liquid containers or picking the vegetarian option for the office
+              lunch, Greenlist gives your workforce the power of changing their habits, and making choices that have
+              less harmful effects on the environment.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl max-w-full">
+              <Image
+                src="/slack-like-messaging-interface-with-voting-options.jpg"
+                alt="Pool collaboration interface"
+                width={800}
+                height={500}
+                className="w-full h-auto max-w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-16 md:py-24 bg-background w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto space-y-16 md:space-y-20 w-full">
+          {/* Feature 1: Removes Middlemen */}
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center w-full">
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Removes Middlemen</h2>
+              <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
+                Direct from the farmers to you, no middlemen. Just honest produce, no hidden costs.
+              </p>
+            </div>
+
+            <div className="relative flex justify-center md:justify-end w-full">
+              <div className="relative rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full">
+                <Image
+                  src="/pie-chart-with-user-avatars-showing-direct-connect.jpg"
+                  alt="Direct connection illustration"
+                  width={400}
+                  height={320}
+                  className="w-full h-auto max-w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 2: Community Driven */}
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center w-full">
+            <div className="relative flex justify-center md:justify-start order-2 md:order-1 w-full">
+              <div className="relative rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full">
+                <Image
+                  src="/leaderboard-with-user-names-and-scores-on-green-ba.jpg"
+                  alt="Community leaderboard"
+                  width={400}
+                  height={320}
+                  className="w-full h-auto max-w-full"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 order-1 md:order-2">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Community Driven</h2>
+              <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
+                Powered by collective participation, driven by a commitment to fair sharing to every member.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3: Cheap and Affordable */}
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center w-full">
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Cheap and Affordable</h2>
+              <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
+                Premium meat and farm-fresh products, delivered to you at unbeatable prices.
+              </p>
+            </div>
+
+            <div className="relative flex justify-center md:justify-end w-full">
+              <div className="relative rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full">
+                <Image
+                  src="/rice-bags.jpg"
+                  alt="Affordable farm products"
+                  width={400}
+                  height={320}
+                  className="w-full h-auto max-w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 4: Harvest Savings */}
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center w-full">
+            <div className="relative flex justify-center md:justify-start order-2 md:order-1 w-full">
+              <div className="relative rounded-2xl overflow-hidden max-w-sm md:max-w-md w-full">
+                <Image
+                  src="/fresh-tomatoes.png"
+                  alt="Harvest savings illustration"
+                  width={400}
+                  height={320}
+                  className="w-full h-auto max-w-full"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 order-1 md:order-2">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Harvest Savings</h2>
+              <p className="text-muted-foreground leading-relaxed text-base md:text-lg">
+                Contribute over time and receive your share when the cow is processed.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Scroll to top button */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed bottom-8 right-8 h-12 w-12 rounded-full bg-accent text-white shadow-lg hover:bg-accent/90 transition-all flex items-center justify-center z-40"
+        aria-label="Scroll to top"
+      >
+        ↑
+      </button>
+
+      {/* What Users Say Section */}
+      <section className="py-16 md:py-20 bg-background border-t w-full">
+        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">What Users Say</h2>
           </div>
@@ -272,207 +474,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      <section id="product" className="py-16 md:py-20 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="text-center mb-12 space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">Available Pools</h2>
-            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Join a pool and enjoy bulk pricing on premium agricultural products. Connect directly with verified
-              vendors and save money together.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {availablePools.map((pool) => (
-              <Card key={pool.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative h-48 bg-muted">
-                  <Image src={pool.image || "/placeholder.svg"} alt={pool.product_name} fill className="object-cover" />
-                  <Badge className="absolute top-3 right-3 bg-accent text-white">
-                    {pool.slots_filled}/{pool.slots_count} filled
-                  </Badge>
-                </div>
-                <CardContent className="p-4 space-y-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">{pool.product_name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{pool.product_description}</p>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>{pool.vendor_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>Closes {new Date(pool.delivery_deadline).toLocaleDateString()}</span>
-                    </div>
-                    {pool.allow_home_delivery && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
-                        <span>Home delivery available</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-3 border-t">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm text-muted-foreground">Price per slot</span>
-                      <span className="text-xl font-bold text-primary">₦{pool.price_per_slot.toLocaleString()}</span>
-                    </div>
-                    <Button
-                      onClick={() => handleJoinPool(pool.id)}
-                      className="w-full bg-accent hover:bg-accent/90 text-white"
-                      disabled={pool.slots_filled >= pool.slots_count}
-                    >
-                      {pool.slots_filled >= pool.slots_count ? "Pool Full" : "Join Pool"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="outline" size="lg" asChild>
-              <Link href="/buyer/marketplace">View All Pools →</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section id="pools" className="py-16 md:py-20 bg-secondary">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="text-center mb-12 space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-balance">Join a pool of six to share a full cow now.</h2>
-            <p className="text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Whether it's choosing reusable food and liquid containers or picking the vegetarian option for the office
-              lunch, Greenlist gives your workforce the power of changing their habits, and making choices that have
-              less harmful effects on the environment.
-            </p>
-          </div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src="/slack-like-messaging-interface-with-voting-options.jpg"
-                alt="Pool collaboration interface"
-                width={800}
-                height={500}
-                className="w-full h-auto"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="py-16 md:py-24 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-4">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Removes Middlemen</h2>
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                Direct from the farmers to you, no middlemen. Just honest produce, no hidden costs.
-              </p>
-            </div>
-
-            <div className="relative flex justify-center md:justify-end">
-              <div className="relative rounded-2xl overflow-hidden max-w-md">
-                <Image
-                  src="/pie-chart-with-user-avatars-showing-direct-connect.jpg"
-                  alt="Direct connection illustration"
-                  width={400}
-                  height={320}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="relative flex justify-center md:justify-start order-2 md:order-1">
-              <div className="relative rounded-2xl overflow-hidden max-w-md">
-                <Image
-                  src="/leaderboard-with-user-names-and-scores-on-green-ba.jpg"
-                  alt="Community leaderboard"
-                  width={400}
-                  height={320}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 order-1 md:order-2">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Community Driven</h2>
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                Powered by collective participation, driven by a commitment to fair sharing to every member.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="space-y-4">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Cheap and Affordable</h2>
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                Premium meat and farm-fresh products, delivered to you at unbeatable prices.
-              </p>
-            </div>
-
-            <div className="relative flex justify-center md:justify-end">
-              <div className="relative rounded-2xl overflow-hidden max-w-md">
-                <Image
-                  src="/rice-bags.jpg"
-                  alt="Affordable farm products"
-                  width={400}
-                  height={320}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24 bg-background">
-        <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="relative flex justify-center md:justify-start order-2 md:order-1">
-              <div className="relative rounded-2xl overflow-hidden max-w-md">
-                <Image
-                  src="/fresh-tomatoes.png"
-                  alt="Harvest savings illustration"
-                  width={400}
-                  height={320}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 order-1 md:order-2">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">Harvest Savings</h2>
-              <p className="text-muted-foreground leading-relaxed text-lg">
-                Contribute over time and receive your share when the cow is processed.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-8 right-8 h-12 w-12 rounded-full bg-accent text-white shadow-lg hover:bg-accent/90 transition-all flex items-center justify-center z-40"
-        aria-label="Scroll to top"
-      >
-        ↑
-      </button>
     </div>
   )
 }

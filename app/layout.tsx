@@ -24,13 +24,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased overflow-x-hidden`}>
         <ThemeProvider>
           <Suspense fallback={null}>
             <NotificationInitializer />
-            <div className="flex min-h-screen flex-col">
+            <div className="flex min-h-screen flex-col overflow-x-hidden">
               <Header />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 overflow-x-hidden">{children}</main>
               <Footer />
             </div>
             <Toaster />
