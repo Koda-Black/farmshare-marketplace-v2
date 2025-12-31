@@ -1,17 +1,18 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "farmshare-marketplace",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "dev:clean": "yarn clean && yarn dev",
-    "build": "yarn build:clean",
+    "build": "next build",
     "build:clean": "yarn clean && next build",
     "build:regular": "next build",
-    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -f tsconfig.tsbuildinfo && rm -rf .next/cache && yarn install",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -f tsconfig.tsbuildinfo && rm -rf .next/cache",
     "clean:full": "rm -rf .next && rm -rf node_modules && rm -f tsconfig.tsbuildinfo && rm -f yarn.lock && yarn install",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "vercel-build": "next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
