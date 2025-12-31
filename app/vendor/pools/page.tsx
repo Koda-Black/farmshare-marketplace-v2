@@ -66,7 +66,7 @@ export default function VendorPoolsPage() {
   ]
 
   return (
-    <div className="container py-8">
+    <div className="container px-[30px] py-8">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, FileText, ImageIcon, Loader2, Info } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAdminDashboard } from "@/hooks/use-admin"
 
 interface VerificationReviewModalProps {
   open: boolean
@@ -27,26 +28,33 @@ export function VerificationReviewModal({ open, onOpenChange, verification }: Ve
   const [decision, setDecision] = useState<"approve" | "reject" | null>(null)
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [feedback, setFeedback] = useState("")
+
+  const { approveVerification, rejectVerification } = useAdminDashboard()
 
   const handleSubmit = async () => {
     if (!decision) return
 
     setIsSubmitting(true)
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      console.log("Verification decision:", {
-        verification_id: verification.id,
-        decision,
-        notes,
-      })
+      if (decision === "approve") {
+        await approveVerification(verification.id, notes)
+      } else {
+        if (!rejectionReason) {
+          throw new Error("Rejection reason is required")
+        }
+        await rejectVerification(verification.id, rejectionReason, feedback)
+      }
 
       onOpenChange(false)
       setDecision(null)
       setNotes("")
-    } catch (error) {
+      setRejectionReason("")
+      setFeedback("")
+    } catch (error: any) {
       console.error("Failed to submit decision:", error)
+      // Error handling could be enhanced with toast notifications
     } finally {
       setIsSubmitting(false)
     }
@@ -238,16 +246,54 @@ export function VerificationReviewModal({ open, onOpenChange, verification }: Ve
               </Button>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any notes about this decision..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
+            {/* Approval Notes */}
+            {decision === "approve" && (
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Add any notes about this approval..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* Rejection Form */}
+            {decision === "reject" && (
+              <div className="space-y-4 p-4 border border-destructive/20 rounded-lg bg-destructive/5">
+                <Alert>
+                  <XCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Rejection requires specific reason and optional feedback for the vendor.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-2">
+                  <Label htmlFor="rejectionReason">Rejection Reason *</Label>
+                  <Textarea
+                    id="rejectionReason"
+                    placeholder="Provide a clear reason for rejection (e.g., 'Documents are unclear', 'Information does not match', 'Invalid documents')..."
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    rows={2}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="feedback">Feedback for Vendor (Optional)</Label>
+                  <Textarea
+                    id="feedback"
+                    placeholder="Provide constructive feedback to help the vendor fix the issues..."
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -255,14 +301,29 @@ export function VerificationReviewModal({ open, onOpenChange, verification }: Ve
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!decision || isSubmitting}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!decision || isSubmitting || (decision === "reject" && !rejectionReason)}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
+                {decision === "approve" ? "Approving..." : "Rejecting..."}
               </>
             ) : (
-              "Submit Decision"
+              <>
+                {decision === "approve" ? (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve Verification
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Reject Verification
+                  </>
+                )}
+              </>
             )}
           </Button>
         </DialogFooter>

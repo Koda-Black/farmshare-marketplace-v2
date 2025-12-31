@@ -3,115 +3,163 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================================
+   FARMSHARE PREMIUM DESIGN SYSTEM v2.0
+   A globally-scalable, accessible, and beautifully animated design system
+   ============================================================================ */
+
 :root {
-  /* FarmShare Original Theme - Light Mode */
-  --background: oklch(0.99 0 0); /* Clean white */
-  --foreground: oklch(0.2 0 0); /* Deep charcoal */
+  /* ========== COLOR PALETTE - LIGHT MODE ========== */
+  /* Built using color theory: Complementary + Split-Complementary harmony */
+
+  /* Base colors */
+  --background: oklch(
+    0.995 0.002 160
+  ); /* Warm white with subtle green undertone */
+  --foreground: oklch(0.18 0.02 160); /* Deep forest charcoal */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0 0);
+  --card-foreground: oklch(0.18 0.02 160);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0 0);
+  --popover-foreground: oklch(0.18 0.02 160);
 
-  /* Dark Forest Green - Primary Brand Color (matching original) */
-  --primary: oklch(0.25 0.08 160); /* Dark forest green #0A3D2C */
-  --primary-foreground: oklch(0.99 0 0);
+  /* Primary: Deep Forest Green - Trust, Growth, Agriculture */
+  --primary: oklch(0.28 0.09 158); /* Enhanced forest green #0A4D3A */
+  --primary-foreground: oklch(0.995 0.002 160);
+  --primary-light: oklch(0.45 0.08 158); /* Lighter variant for hover states */
+  --primary-dark: oklch(0.18 0.06 158); /* Darker for active states */
 
-  /* Coral Pink Accent for Actions (matching original) */
-  --accent: oklch(0.68 0.15 15); /* Coral/salmon pink #FF6B6B */
-  --accent-foreground: oklch(0.99 0 0);
+  /* Accent: Vibrant Coral - Energy, Action, Urgency */
+  --accent: oklch(0.65 0.18 20); /* Refined coral #FF5A5F */
+  --accent-foreground: oklch(0.995 0 0);
+  --accent-light: oklch(0.75 0.14 20); /* Softer for hover */
+  --accent-dark: oklch(0.55 0.2 20); /* Deeper for active */
 
-  /* Light Pink for section backgrounds (matching original) */
-  --secondary: oklch(0.96 0.02 15); /* Light pink #FFE5E5 */
-  --secondary-foreground: oklch(0.25 0.08 160);
+  /* Secondary: Blush Pink - Warmth, Approachability */
+  --secondary: oklch(0.97 0.02 15); /* Light blush #FFF0F0 */
+  --secondary-foreground: oklch(0.28 0.09 158);
 
-  --muted: oklch(0.96 0.005 160);
-  --muted-foreground: oklch(0.5 0.01 160);
+  /* Tertiary: Harvest Gold - Prosperity, Quality, Premium */
+  --tertiary: oklch(0.78 0.14 85); /* Golden amber #E8A832 */
+  --tertiary-foreground: oklch(0.18 0.02 160);
 
+  /* Muted: Sage tones for subtle backgrounds */
+  --muted: oklch(0.965 0.008 160);
+  --muted-foreground: oklch(0.45 0.015 160);
+
+  /* Semantic colors */
   --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.99 0 0);
+  --destructive-foreground: oklch(0.995 0 0);
 
-  --border: oklch(0.9 0.005 160);
-  --input: oklch(0.9 0.005 160);
-  --ring: oklch(0.25 0.08 160);
+  --success: oklch(0.58 0.16 145); /* Fresh growth green */
+  --success-foreground: oklch(0.995 0 0);
 
-  /* Success green for verified states */
-  --success: oklch(0.55 0.15 145);
-  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.75 0.14 75); /* Harvest amber */
+  --warning-foreground: oklch(0.18 0 0);
 
-  /* Warning amber for pending states */
-  --warning: oklch(0.7 0.15 75);
-  --warning-foreground: oklch(0.2 0 0);
+  --info: oklch(0.58 0.14 230); /* Sky blue */
+  --info-foreground: oklch(0.995 0 0);
 
-  --chart-1: oklch(0.25 0.08 160); /* Green */
-  --chart-2: oklch(0.68 0.15 15); /* Coral */
-  --chart-3: oklch(0.55 0.15 145); /* Success green */
-  --chart-4: oklch(0.6 0.18 25); /* Orange */
-  --chart-5: oklch(0.5 0.12 220); /* Blue */
+  /* Border and inputs */
+  --border: oklch(0.92 0.008 160);
+  --input: oklch(0.92 0.008 160);
+  --ring: oklch(0.28 0.09 158);
 
-  --radius: 0.5rem;
+  /* Chart colors - harmonious palette */
+  --chart-1: oklch(0.28 0.09 158); /* Primary green */
+  --chart-2: oklch(0.65 0.18 20); /* Coral */
+  --chart-3: oklch(0.58 0.16 145); /* Success green */
+  --chart-4: oklch(0.78 0.14 85); /* Harvest gold */
+  --chart-5: oklch(0.58 0.14 230); /* Sky blue */
 
-  --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.2 0 0);
-  --sidebar-primary: oklch(0.25 0.08 160);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.96 0.02 15);
-  --sidebar-accent-foreground: oklch(0.25 0.08 160);
-  --sidebar-border: oklch(0.9 0.005 160);
-  --sidebar-ring: oklch(0.25 0.08 160);
+  /* Spacing and sizing */
+  --radius: 0.625rem;
+  --radius-xs: 0.25rem;
+
+  /* Sidebar */
+  --sidebar: oklch(0.995 0.002 160);
+  --sidebar-foreground: oklch(0.18 0.02 160);
+  --sidebar-primary: oklch(0.28 0.09 158);
+  --sidebar-primary-foreground: oklch(0.995 0.002 160);
+  --sidebar-accent: oklch(0.97 0.02 15);
+  --sidebar-accent-foreground: oklch(0.28 0.09 158);
+  --sidebar-border: oklch(0.92 0.008 160);
+  --sidebar-ring: oklch(0.28 0.09 158);
+
+  /* Animation timing */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 400ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .dark {
-  /* FarmShare Theme - Dark Mode */
-  --background: oklch(0.15 0.01 160); /* Deep green-black */
-  --foreground: oklch(0.95 0.005 160);
+  /* ========== COLOR PALETTE - DARK MODE ========== */
+  /* Carefully balanced for readability and reduced eye strain */
 
-  --card: oklch(0.18 0.015 160);
-  --card-foreground: oklch(0.95 0.005 160);
+  --background: oklch(0.14 0.015 160); /* Deep green-tinted black */
+  --foreground: oklch(0.94 0.005 160);
 
-  --popover: oklch(0.18 0.015 160);
-  --popover-foreground: oklch(0.95 0.005 160);
+  --card: oklch(0.17 0.018 160);
+  --card-foreground: oklch(0.94 0.005 160);
 
-  --primary: oklch(0.45 0.12 160); /* Lighter green for dark mode */
-  --primary-foreground: oklch(0.99 0 0);
+  --popover: oklch(0.17 0.018 160);
+  --popover-foreground: oklch(0.94 0.005 160);
 
-  --accent: oklch(0.68 0.15 15); /* Coral stays vibrant */
-  --accent-foreground: oklch(0.99 0 0);
+  /* Primary: Lighter green for dark mode visibility */
+  --primary: oklch(0.52 0.12 158);
+  --primary-foreground: oklch(0.12 0.01 160);
+  --primary-light: oklch(0.62 0.1 158);
+  --primary-dark: oklch(0.42 0.14 158);
 
-  --secondary: oklch(0.25 0.02 160);
-  --secondary-foreground: oklch(0.95 0.005 160);
+  /* Accent: Coral remains vibrant */
+  --accent: oklch(0.68 0.16 20);
+  --accent-foreground: oklch(0.995 0 0);
+  --accent-light: oklch(0.78 0.12 20);
+  --accent-dark: oklch(0.58 0.18 20);
 
-  --muted: oklch(0.25 0.02 160);
-  --muted-foreground: oklch(0.6 0.01 160);
+  --secondary: oklch(0.22 0.025 160);
+  --secondary-foreground: oklch(0.94 0.005 160);
 
-  --destructive: oklch(0.45 0.2 25);
-  --destructive-foreground: oklch(0.95 0.005 160);
+  --tertiary: oklch(0.75 0.12 85);
+  --tertiary-foreground: oklch(0.14 0.015 160);
 
-  --border: oklch(0.25 0.02 160);
-  --input: oklch(0.25 0.02 160);
-  --ring: oklch(0.45 0.12 160);
+  --muted: oklch(0.22 0.02 160);
+  --muted-foreground: oklch(0.65 0.012 160);
 
-  --success: oklch(0.6 0.15 145);
-  --success-foreground: oklch(0.15 0.01 160);
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.94 0.005 160);
 
-  --warning: oklch(0.7 0.15 75);
-  --warning-foreground: oklch(0.15 0.01 160);
+  --success: oklch(0.62 0.14 145);
+  --success-foreground: oklch(0.14 0.015 160);
 
-  --chart-1: oklch(0.45 0.12 160);
-  --chart-2: oklch(0.68 0.15 15);
-  --chart-3: oklch(0.6 0.15 145);
-  --chart-4: oklch(0.65 0.18 25);
-  --chart-5: oklch(0.6 0.15 220);
+  --warning: oklch(0.72 0.14 75);
+  --warning-foreground: oklch(0.14 0.015 160);
 
-  --sidebar: oklch(0.18 0.015 160);
-  --sidebar-foreground: oklch(0.95 0.005 160);
-  --sidebar-primary: oklch(0.45 0.12 160);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.25 0.02 160);
-  --sidebar-accent-foreground: oklch(0.95 0.005 160);
-  --sidebar-border: oklch(0.25 0.02 160);
-  --sidebar-ring: oklch(0.45 0.12 160);
+  --info: oklch(0.62 0.14 230);
+  --info-foreground: oklch(0.14 0.015 160);
+
+  --border: oklch(0.26 0.022 160);
+  --input: oklch(0.26 0.022 160);
+  --ring: oklch(0.52 0.12 158);
+
+  --chart-1: oklch(0.52 0.12 158);
+  --chart-2: oklch(0.68 0.16 20);
+  --chart-3: oklch(0.62 0.14 145);
+  --chart-4: oklch(0.75 0.12 85);
+  --chart-5: oklch(0.62 0.14 230);
+
+  --sidebar: oklch(0.17 0.018 160);
+  --sidebar-foreground: oklch(0.94 0.005 160);
+  --sidebar-primary: oklch(0.52 0.12 158);
+  --sidebar-primary-foreground: oklch(0.12 0.01 160);
+  --sidebar-accent: oklch(0.22 0.025 160);
+  --sidebar-accent-foreground: oklch(0.94 0.005 160);
+  --sidebar-border: oklch(0.26 0.022 160);
+  --sidebar-ring: oklch(0.52 0.12 158);
 }
 
 @theme inline {
@@ -165,5 +213,351 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* ============================================================================
+   PREMIUM ANIMATION SYSTEM
+   Smooth, purposeful micro-interactions that enhance UX without overwhelming
+   ============================================================================ */
+
+@layer utilities {
+  /* Page transition animations */
+  .animate-fade-in {
+    animation: fadeIn var(--transition-normal) var(--ease-out-expo) forwards;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp var(--transition-slow) var(--ease-out-expo) forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown var(--transition-slow) var(--ease-out-expo) forwards;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn var(--transition-normal) var(--ease-out-expo) forwards;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft var(--transition-slow) var(--ease-out-expo) forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight var(--transition-slow) var(--ease-out-expo) forwards;
+  }
+
+  /* Staggered animation delays for lists */
+  .stagger-1 {
+    animation-delay: 50ms;
+  }
+  .stagger-2 {
+    animation-delay: 100ms;
+  }
+  .stagger-3 {
+    animation-delay: 150ms;
+  }
+  .stagger-4 {
+    animation-delay: 200ms;
+  }
+  .stagger-5 {
+    animation-delay: 250ms;
+  }
+  .stagger-6 {
+    animation-delay: 300ms;
+  }
+
+  /* Interactive element transitions */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px oklch(0.2 0.02 160 / 0.15);
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200;
+  }
+  .hover-scale:hover {
+    transform: scale(1.02);
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  .hover-glow:hover {
+    box-shadow: 0 0 20px oklch(0.65 0.18 20 / 0.3);
+  }
+
+  /* Focus states for accessibility */
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none;
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.96 0.005 160) 25%,
+      oklch(0.98 0.003 160) 50%,
+      oklch(0.96 0.005 160) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      oklch(0.22 0.02 160) 25%,
+      oklch(0.26 0.018 160) 50%,
+      oklch(0.22 0.02 160) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Pulse animation for notifications/badges */
+  .pulse-dot {
+    @apply relative;
+  }
+  .pulse-dot::before {
+    content: "";
+    @apply absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full;
+    animation: pulse 2s infinite;
+  }
+
+  /* Gradient text effect */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      oklch(0.28 0.09 158),
+      oklch(0.65 0.18 20)
+    );
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply backdrop-blur-md;
+    background: oklch(1 0 0 / 0.7);
+    border: 1px solid oklch(0.92 0.008 160 / 0.5);
+  }
+  .dark .glass {
+    background: oklch(0.17 0.018 160 / 0.7);
+    border: 1px solid oklch(0.26 0.022 160 / 0.5);
+  }
+
+  /* Premium card styling */
+  .card-premium {
+    @apply relative overflow-hidden rounded-xl border bg-card;
+    transition: all var(--transition-normal) var(--ease-in-out-smooth);
+  }
+  .card-premium::before {
+    content: "";
+    @apply absolute inset-0 opacity-0;
+    background: linear-gradient(
+      135deg,
+      oklch(0.28 0.09 158 / 0.05),
+      oklch(0.65 0.18 20 / 0.05)
+    );
+    transition: opacity var(--transition-normal) var(--ease-in-out-smooth);
+  }
+  .card-premium:hover::before {
+    @apply opacity-100;
+  }
+  .card-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px oklch(0.2 0.02 160 / 0.1),
+      0 10px 20px -5px oklch(0.2 0.02 160 / 0.1);
+  }
+
+  /* Smooth scroll behavior */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Custom scrollbar styling */
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-custom::-webkit-scrollbar-track {
+    @apply bg-muted rounded-full;
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+    transition: background var(--transition-fast);
+  }
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Section dividers */
+  .section-divider {
+    @apply relative;
+  }
+  .section-divider::after {
+    content: "";
+    @apply absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full bg-gradient-to-r from-primary to-accent;
+  }
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes bounce-subtle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Global smooth transitions */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection styling */
+::selection {
+  background: oklch(0.28 0.09 158 / 0.2);
+  color: oklch(0.18 0.02 160);
+}
+
+.dark ::selection {
+  background: oklch(0.52 0.12 158 / 0.3);
+  color: oklch(0.94 0.005 160);
+}
+
+/* Focus visible enhancement */
+:focus-visible {
+  outline: 2px solid oklch(0.28 0.09 158);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
 }

@@ -2,19 +2,18 @@
 
 import { useEffect } from "react"
 import { useStore } from "@/lib/store"
-import { mockNotifications } from "@/lib/mock-notifications"
+import { useNotifications } from "@/hooks/use-notifications"
 
 export function NotificationInitializer() {
-  const { notifications, addNotification } = useStore()
+  const { isAuthenticated } = useStore()
+  const { fetch: fetchNotifications } = useNotifications()
 
   useEffect(() => {
-    // Load mock notifications on first render if none exist
-    if (notifications.length === 0) {
-      mockNotifications.forEach((notification) => {
-        addNotification(notification)
-      })
+    // Fetch real notifications from backend when user is authenticated
+    if (isAuthenticated) {
+      fetchNotifications({ page: 1, limit: 20 })
     }
-  }, []) // Only run once on mount
+  }, [isAuthenticated, fetchNotifications])
 
   return null
 }

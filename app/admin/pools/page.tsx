@@ -8,9 +8,31 @@ import { Input } from "@/components/ui/input"
 import { Search, MoreVertical, Ban } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { useAdminAuth } from "@/hooks/use-admin"
 
 export default function AdminPoolsPage() {
+  const { isAdminAuthenticated } = useAdminAuth()
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Check if admin is authenticated
+  if (!isAdminAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">
+            Admin Authentication Required
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            Please log in to access admin pools
+          </p>
+          <Button asChild>
+            <a href="/admin/login">Go to Admin Login</a>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   // Mock pools data
   const pools = [
@@ -47,8 +69,10 @@ export default function AdminPoolsPage() {
   ]
 
   return (
-    <div className="container py-8">
-      <div className="space-y-6">
+    <div className="flex min-h-screen">
+      <AdminSidebar />
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 space-y-8 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Pool Management</h1>
@@ -169,6 +193,7 @@ export default function AdminPoolsPage() {
             </Table>
           </CardContent>
         </Card>
+        </main>
       </div>
     </div>
   )

@@ -1,21 +1,38 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Search, TrendingUp, Clock, Users, Star, Award, Package, CheckCircle } from "lucide-react"
-import { MarketplacePoolCard } from "@/components/buyer/marketplace-pool-card"
-import { useStore } from "@/lib/store"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  TrendingUp,
+  Clock,
+  Users,
+  Star,
+  Award,
+  Package,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
+import { MarketplacePoolCard } from "@/components/buyer/marketplace-pool-card";
+import { useStore } from "@/lib/store";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { PoolsService, Pool } from "@/lib/api/pools";
 
 export default function BuyerMarketplacePage() {
-  const user = useStore((state) => state.user)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("newest")
+  const user = useStore((state) => state.user);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   // Mock marketplace pools
   const marketplacePools = [
@@ -25,7 +42,8 @@ export default function BuyerMarketplacePage() {
       vendor_name: "FarmCo Supplies",
       vendor_verified: true,
       product_name: "Premium Rice",
-      product_description: "50kg bags of premium quality rice from northern farms",
+      product_description:
+        "50kg bags of premium quality rice from northern farms",
       product_image: "/rice-bags.jpg",
       slots_count: 10,
       slots_filled: 8,
@@ -33,7 +51,9 @@ export default function BuyerMarketplacePage() {
       price_per_slot: 50000,
       allow_home_delivery: true,
       home_delivery_cost: 5000,
-      delivery_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      delivery_deadline: new Date(
+        Date.now() + 3 * 24 * 60 * 60 * 1000
+      ).toISOString(),
       status: "active" as const,
       created_at: new Date().toISOString(),
       category: "grains",
@@ -46,14 +66,17 @@ export default function BuyerMarketplacePage() {
       vendor_name: "Green Valley Farms",
       vendor_verified: true,
       product_name: "Organic Tomatoes",
-      product_description: "Fresh organic tomatoes - 25kg crates, harvested daily",
+      product_description:
+        "Fresh organic tomatoes - 25kg crates, harvested daily",
       product_image: "/fresh-tomatoes.png",
       slots_count: 15,
       slots_filled: 12,
       price_total: 225000,
       price_per_slot: 15000,
       allow_home_delivery: false,
-      delivery_deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+      delivery_deadline: new Date(
+        Date.now() + 1 * 24 * 60 * 60 * 1000
+      ).toISOString(),
       status: "active" as const,
       created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       category: "vegetables",
@@ -66,7 +89,8 @@ export default function BuyerMarketplacePage() {
       vendor_name: "FarmCo Supplies",
       vendor_verified: true,
       product_name: "Yellow Maize",
-      product_description: "100kg bags of yellow maize, perfect for livestock feed",
+      product_description:
+        "100kg bags of yellow maize, perfect for livestock feed",
       product_image: "/yellow-corn-maize.jpg",
       slots_count: 8,
       slots_filled: 3,
@@ -74,7 +98,9 @@ export default function BuyerMarketplacePage() {
       price_per_slot: 40000,
       allow_home_delivery: true,
       home_delivery_cost: 8000,
-      delivery_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      delivery_deadline: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString(),
       status: "active" as const,
       created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
       category: "grains",
@@ -87,7 +113,8 @@ export default function BuyerMarketplacePage() {
       vendor_name: "Tropical Harvest",
       vendor_verified: false,
       product_name: "Palm Oil",
-      product_description: "Pure red palm oil - 25L containers, locally sourced",
+      product_description:
+        "Pure red palm oil - 25L containers, locally sourced",
       product_image: "/palm-oil-containers.jpg",
       slots_count: 12,
       slots_filled: 5,
@@ -95,16 +122,20 @@ export default function BuyerMarketplacePage() {
       price_per_slot: 30000,
       allow_home_delivery: true,
       home_delivery_cost: 3000,
-      delivery_deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      delivery_deadline: new Date(
+        Date.now() + 5 * 24 * 60 * 60 * 1000
+      ).toISOString(),
       status: "active" as const,
       created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       category: "oils",
       fill_rate: 41.7,
       join_velocity: 1.7,
     },
-  ]
+  ];
 
-  const trendingPools = [...marketplacePools].sort((a, b) => b.join_velocity - a.join_velocity).slice(0, 3)
+  const trendingPools = [...marketplacePools]
+    .sort((a, b) => b.join_velocity - a.join_velocity)
+    .slice(0, 3);
 
   const topVendors = [
     {
@@ -137,7 +168,7 @@ export default function BuyerMarketplacePage() {
       complaints: 0,
       rating: 5.0,
     },
-  ]
+  ];
 
   return (
     <div className="container px-[30px] py-8">
@@ -145,7 +176,9 @@ export default function BuyerMarketplacePage() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">Marketplace</h1>
-          <p className="text-muted-foreground mt-1">Browse and join buying pools for agricultural products</p>
+          <p className="text-muted-foreground mt-1">
+            Browse and join buying pools for agricultural products
+          </p>
         </div>
 
         {/* Search and Filters */}
@@ -190,7 +223,7 @@ export default function BuyerMarketplacePage() {
         </Card>
 
         {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
+        {/* <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -230,7 +263,7 @@ export default function BuyerMarketplacePage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -251,9 +284,14 @@ export default function BuyerMarketplacePage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-semibold">{pool.product_name}</h3>
-                        <p className="text-sm text-muted-foreground">{pool.vendor_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {pool.vendor_name}
+                        </p>
                       </div>
-                      <Badge variant="secondary" className="bg-accent/20 text-accent-foreground">
+                      <Badge
+                        variant="secondary"
+                        className="bg-accent/20 text-accent-foreground"
+                      >
                         <TrendingUp className="h-3 w-3 mr-1" />
                         Hot
                       </Badge>
@@ -268,8 +306,12 @@ export default function BuyerMarketplacePage() {
                       <Progress value={pool.fill_rate} className="h-2" />
                     </div>
                     <div className="flex items-center justify-between pt-2">
-                      <span className="text-lg font-bold">₦{pool.price_per_slot.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground">{pool.join_velocity} joins/day</span>
+                      <span className="text-lg font-bold">
+                        ₦{pool.price_per_slot.toLocaleString()}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {pool.join_velocity} joins/day
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -296,17 +338,24 @@ export default function BuyerMarketplacePage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={vendor.avatar || "/placeholder.svg"} alt={vendor.name} />
+                        <AvatarImage
+                          src={vendor.avatar || "/placeholder.svg"}
+                          alt={vendor.name}
+                        />
                         <AvatarFallback>{vendor.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold">{vendor.name}</h3>
-                          {vendor.verified && <CheckCircle className="h-4 w-4 text-primary" />}
+                          {vendor.verified && (
+                            <CheckCircle className="h-4 w-4 text-primary" />
+                          )}
                         </div>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                          <span className="text-sm font-medium">{vendor.rating}</span>
+                          <span className="text-sm font-medium">
+                            {vendor.rating}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -316,14 +365,18 @@ export default function BuyerMarketplacePage() {
                           <Package className="h-3 w-3" />
                           Pools Completed
                         </span>
-                        <span className="font-medium">{vendor.pools_completed}</span>
+                        <span className="font-medium">
+                          {vendor.pools_completed}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           On-Time Delivery
                         </span>
-                        <span className="font-medium text-success">{vendor.on_time_delivery}%</span>
+                        <span className="font-medium text-success">
+                          {vendor.on_time_delivery}%
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground flex items-center gap-1">
@@ -351,5 +404,5 @@ export default function BuyerMarketplacePage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

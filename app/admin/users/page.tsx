@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Search, MoreVertical, Ban, CheckCircle } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { AdminSidebar } from "@/components/admin/admin-sidebar"
 
 export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -50,8 +51,10 @@ export default function AdminUsersPage() {
   ]
 
   return (
-    <div className="container py-8">
-      <div className="space-y-6">
+    <div className="flex min-h-screen">
+      <AdminSidebar />
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 space-y-8 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>
@@ -59,7 +62,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -118,7 +121,8 @@ export default function AdminUsersPage() {
             <CardTitle>All Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
@@ -183,9 +187,11 @@ export default function AdminUsersPage() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </CardContent>
         </Card>
+        </main>
       </div>
     </div>
   )

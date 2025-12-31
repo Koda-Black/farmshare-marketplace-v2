@@ -18,6 +18,8 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, CreditCard, Truck, MapPin, Info } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
+import { paymentService, InitPaymentDto, PaymentMethod } from "@/lib/payment.service"
+import { useToast } from "@/hooks/use-toast"
 
 interface CheckoutModalProps {
   open: boolean
@@ -30,45 +32,73 @@ interface CheckoutModalProps {
     home_delivery_cost?: number
     pickup_location: string
   }
+  slots?: number
 }
 
-export function CheckoutModal({ open, onOpenChange, pool }: CheckoutModalProps) {
+export function CheckoutModal({ open, onOpenChange, pool, slots = 1 }: CheckoutModalProps) {
   const router = useRouter()
+  const { toast } = useToast()
   const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup")
   const [deliveryAddress, setDeliveryAddress] = useState("")
   const [phoneNumber, setPhoneNumber] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PAYSTACK')
+  const [selectedSlots, setSelectedSlots] = useState(slots)
   const [isProcessing, setIsProcessing] = useState(false)
 
   const slotPrice = pool.price_per_slot
   const deliveryCost = deliveryMethod === "delivery" ? pool.home_delivery_cost || 0 : 0
-  const subtotal = slotPrice + deliveryCost
+  const subtotal = slotPrice * selectedSlots
   const platformFee = subtotal * 0.02 // 2% platform fee for buyers
-  const total = subtotal + platformFee
+  const total = subtotal + deliveryCost + platformFee
+  const maxSlots = 10 // Maximum slots a user can purchase at once
 
   const handleCheckout = async () => {
+    // Validate required fields
+    if (deliveryMethod === "delivery" && !deliveryAddress.trim()) {
+      toast({
+        title: "Delivery Address Required",
+        description: "Please enter your delivery address",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsProcessing(true)
 
     try {
-      // TODO: Replace with actual Paystack integration
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Initiate payment with backend
+      const paymentData: InitPaymentDto = {
+        method: paymentMethod,
+        poolId: Array.isArray(pool.id) ? pool.id[0] : pool.id,
+        slots: selectedSlots,
+        waybillWithin: deliveryMethod === "pickup",
+        waybillOutside: deliveryMethod === "delivery",
+      }
 
-      // Mock Paystack checkout
-      console.log("Processing payment:", {
-        amount: total,
-        email: "buyer@example.com",
-        metadata: {
-          pool_id: pool.id,
-          delivery_method: deliveryMethod,
-          delivery_address: deliveryAddress,
-          phone_number: phoneNumber,
-        },
-      })
+      const response = await paymentService.initiatePayment(paymentData)
 
-      // Redirect to success page
-      router.push("/buyer/orders?status=success")
-      onOpenChange(false)
-    } catch (error) {
+      if (response.success && response.data?.paymentUrl) {
+        // Redirect to payment gateway
+        window.location.href = response.data.paymentUrl
+      } else {
+        throw new Error(response.message || 'Payment initiation failed')
+      }
+    } catch (error: any) {
       console.error("Payment failed:", error)
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsProcessing(false)
     }
@@ -86,13 +116,50 @@ export function CheckoutModal({ open, onOpenChange, pool }: CheckoutModalProps) 
           {/* Order Summary */}
           <div className="space-y-3">
             <h3 className="font-semibold">Order Summary</h3>
-            <div className="p-4 bg-muted rounded-lg space-y-2">
+            <div className="p-4 bg-muted rounded-lg space-y-4">
               <div className="flex justify-between">
-                <span className="text-sm">{pool.product_name}</span>
-                <span className="text-sm font-medium">₦{slotPrice.toLocaleString()}</span>
+                <span className="text-sm font-medium">{pool.product_name}</span>
+                <span className="text-sm">₦{slotPrice.toLocaleString()} per slot</span>
               </div>
+
+              {/* Slot Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="slots">Number of Slots</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSlots(Math.max(1, selectedSlots - 1))}
+                    disabled={selectedSlots <= 1}
+                  >
+                    -
+                  </Button>
+                  <Input
+                    id="slots"
+                    type="number"
+                    min="1"
+                    max={maxSlots}
+                    value={selectedSlots}
+                    onChange={(e) => setSelectedSlots(Math.min(maxSlots, Math.max(1, parseInt(e.target.value) || 1)))}
+                    className="w-20 text-center"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSlots(Math.min(maxSlots, selectedSlots + 1))}
+                    disabled={selectedSlots >= maxSlots}
+                  >
+                    +
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Maximum {maxSlots} slots per order</p>
+              </div>
+
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>1 slot</span>
+                <span>{selectedSlots} {selectedSlots === 1 ? 'slot' : 'slots'}</span>
+                <span className="text-sm font-medium">₦{subtotal.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -164,6 +231,38 @@ export function CheckoutModal({ open, onOpenChange, pool }: CheckoutModalProps) 
             <p className="text-xs text-muted-foreground">For delivery coordination and updates</p>
           </div>
 
+          {/* Payment Method */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Payment Method</Label>
+            <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+              <div className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50">
+                <RadioGroupItem value="PAYSTACK" id="paystack" />
+                <div className="flex-1">
+                  <Label htmlFor="paystack" className="cursor-pointer">
+                    <div className="flex items-center gap-2 font-medium">
+                      <CreditCard className="h-4 w-4" />
+                      Paystack
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Pay with card, bank transfer, or USSD</p>
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50">
+                <RadioGroupItem value="STRIPE" id="stripe" />
+                <div className="flex-1">
+                  <Label htmlFor="stripe" className="cursor-pointer">
+                    <div className="flex items-center gap-2 font-medium">
+                      <CreditCard className="h-4 w-4" />
+                      Stripe
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Pay with international credit/debit cards</p>
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+
           <Separator />
 
           {/* Price Breakdown */}
@@ -196,7 +295,7 @@ export function CheckoutModal({ open, onOpenChange, pool }: CheckoutModalProps) 
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              Your payment is held securely by Paystack until the pool fills and products are delivered. Full refund if
+              Your payment is held securely by {paymentMethod === 'PAYSTACK' ? 'Paystack' : 'Stripe'} until the pool fills and products are delivered. Full refund if
               the pool doesn't fill or vendor fails to deliver.
             </AlertDescription>
           </Alert>

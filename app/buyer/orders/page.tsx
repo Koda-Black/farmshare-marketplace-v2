@@ -38,7 +38,7 @@ export default function BuyerOrdersPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container px-[30px] py-8">
       <div className="space-y-6">
         {/* Header */}
         <div>

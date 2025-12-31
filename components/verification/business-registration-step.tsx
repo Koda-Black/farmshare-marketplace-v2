@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, CheckCircle, Upload, Info } from "lucide-react"
+import { Loader2, CheckCircle, Upload, Info, AlertCircle, Building2, Calendar, FileText } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { verificationService } from "@/lib/verification.service"
 
 interface BusinessRegistrationStepProps {
   onComplete: () => void
@@ -18,31 +19,50 @@ export function BusinessRegistrationStep({ onComplete }: BusinessRegistrationSte
   const [businessName, setBusinessName] = useState("")
   const [document, setDocument] = useState<File | null>(null)
   const [isLookingUp, setIsLookingUp] = useState(false)
-  const [lookupResult, setLookupResult] = useState<{
-    found: boolean
-    name?: string
+  const [verificationStatus, setVerificationStatus] = useState<"idle" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const [companyDetails, setCompanyDetails] = useState<{
+    companyName?: string
+    businessType?: string
     status?: string
+    registrationDate?: string
+    address?: string
   } | null>(null)
 
   const handleLookup = async () => {
     if (!registrationNumber) return
 
     setIsLookingUp(true)
-    try {
-      // TODO: Replace with actual government registry API lookup
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    setVerificationStatus("idle")
+    setErrorMessage("")
+    setCompanyDetails(null)
 
-      // Mock lookup result
-      setLookupResult({
-        found: true,
-        name: "FarmCo Agricultural Supplies Ltd",
-        status: "Active",
-      })
-      setBusinessName("FarmCo Agricultural Supplies Ltd")
-    } catch (error) {
-      setLookupResult({
-        found: false,
-      })
+    try {
+      const result = await verificationService.verifyBusinessRegistration(
+        registrationNumber,
+        businessName || undefined
+      )
+
+      if (result.success) {
+        setCompanyDetails({
+          companyName: result.companyName,
+          businessType: result.businessType,
+          status: result.status,
+          registrationDate: result.registrationDate,
+          address: result.address,
+        })
+        setBusinessName(result.companyName || "")
+        setVerificationStatus("success")
+      } else {
+        setVerificationStatus("error")
+        setErrorMessage(
+          result.message || "Business not found in registry. Please check the registration number."
+        )
+      }
+    } catch (error: any) {
+      setVerificationStatus("error")
+      setErrorMessage("Network error. Please try again.")
     } finally {
       setIsLookingUp(false)
     }
@@ -63,35 +83,97 @@ export function BusinessRegistrationStep({ onComplete }: BusinessRegistrationSte
           <div className="flex gap-2">
             <Input
               id="registration-number"
-              placeholder="RC123456"
+              placeholder="RC123456, BN123456, or IT123456"
               value={registrationNumber}
-              onChange={(e) => setRegistrationNumber(e.target.value)}
+              onChange={(e) => {
+                setRegistrationNumber(e.target.value.toUpperCase())
+                // Reset verification when user changes input
+                if (verificationStatus !== "idle") {
+                  setVerificationStatus("idle")
+                  setCompanyDetails(null)
+                }
+              }}
             />
             <Button onClick={handleLookup} disabled={!registrationNumber || isLookingUp} variant="outline">
               {isLookingUp ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Looking up...
+                  Verifying...
                 </>
               ) : (
                 "Verify"
               )}
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Enter your CAC registration number (RC for Limited Company, BN for Business Name, IT for Incorporated Trustees)
+          </p>
         </div>
 
-        {lookupResult && (
-          <Alert variant={lookupResult.found ? "default" : "destructive"}>
+        {/* Success Alert with Company Details */}
+        {verificationStatus === "success" && companyDetails && (
+          <Alert className="border-success bg-success/10">
+            <CheckCircle className="h-4 w-4 text-success" />
             <AlertDescription>
-              {lookupResult.found ? (
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span>Business found: {lookupResult.name}</span>
-                  <Badge className="bg-success text-success-foreground">{lookupResult.status}</Badge>
+                  <p className="font-medium text-success">Business Verified!</p>
+                  <Badge className="bg-success text-success-foreground">
+                    {companyDetails.status || "Active"}
+                  </Badge>
                 </div>
-              ) : (
-                "Business not found in registry. Please check the registration number."
-              )}
+
+                <div className="grid gap-2 text-sm">
+                  {companyDetails.companyName && (
+                    <div className="flex items-start gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Company Name</p>
+                        <p className="font-medium">{companyDetails.companyName}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {companyDetails.businessType && (
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Business Type</p>
+                        <p className="font-medium">{companyDetails.businessType}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {companyDetails.registrationDate && (
+                    <div className="flex items-start gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Registration Date</p>
+                        <p className="font-medium">{companyDetails.registrationDate}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {companyDetails.address && (
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Registered Address</p>
+                        <p className="font-medium text-xs">{companyDetails.address}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Error Alert */}
+        {verificationStatus === "error" && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
 
@@ -131,12 +213,27 @@ export function BusinessRegistrationStep({ onComplete }: BusinessRegistrationSte
         </div>
       </div>
 
+      <div className="rounded-lg border bg-muted/30 p-4">
+        <h4 className="text-sm font-medium mb-2">Why verify your business?</h4>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          <li>• Build trust with buyers and increase sales</li>
+          <li>• Get a verified badge on your vendor profile</li>
+          <li>• Access to higher-tier payment limits</li>
+          <li>• This step is optional but highly recommended</li>
+        </ul>
+      </div>
+
       <div className="flex gap-3">
-        <Button onClick={onComplete} className="bg-primary hover:bg-primary/90">
+        <Button
+          onClick={onComplete}
+          className="flex-1 bg-success hover:bg-success/90 text-success-foreground"
+          disabled={verificationStatus === "success" ? false : false}
+        >
+          <CheckCircle className="mr-2 h-4 w-4" />
           Continue
         </Button>
-        <Button onClick={onComplete} variant="outline">
-          Skip this step
+        <Button onClick={onComplete} variant="outline" className="flex-1">
+          Skip for now
         </Button>
       </div>
     </div>
