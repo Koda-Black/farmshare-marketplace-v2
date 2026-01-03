@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { User, Leaf, Moon, Sun, Menu, Sparkles } from "lucide-react";
+import { User, Moon, Sun, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { useAdminAuth } from "@/hooks/use-admin";
@@ -56,14 +57,18 @@ export function Header() {
       } text-primary-foreground`}
     >
       <div className="px-[30px] lg:px-[60px] flex h-16 items-center justify-between max-w-[1400px] mx-auto">
-        {/* Logo - Enhanced with animation */}
+        {/* Logo - Using new icon from farmshare */}
         <Link
           href="/"
           className="flex items-center gap-2.5 flex-shrink-0 group"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent shadow-lg shadow-accent/25 transition-transform duration-300 group-hover:scale-110">
-            <Leaf className="h-5 w-5 text-white transition-transform duration-300 group-hover:rotate-12" />
-          </div>
+          <Image
+            src="/assets/logo/cowrie-icon-accent.svg"
+            alt="Farmshare"
+            width={40}
+            height={40}
+            className="transition-transform duration-300 group-hover:scale-110"
+          />
           <span className="text-lg font-bold text-primary-foreground tracking-tight">
             farmshare
           </span>
