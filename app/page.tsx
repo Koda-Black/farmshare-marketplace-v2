@@ -6,49 +6,62 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Quote,
   Users,
-  Clock,
-  MapPin,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
   Leaf,
   TrendingUp,
   Shield,
   Sparkles,
   ArrowRight,
 } from "lucide-react";
+import { Search } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { httpRequest } from "@/lib/httpRequest";
 
-const testimonials = [
+interface Testimonial {
+  id: number;
+  quote: string;
+  name: string;
+  title: string;
+  image: string;
+}
+
+const testimonials: Testimonial[] = [
   {
     id: 1,
     quote:
-      "Farmshare is the future of food sourcing – fresh, direct, and community-driven. It's a smart way to save and support local farmers.",
-    name: "Chukwu Emmanuel",
-    title: "Founder, Micropay",
-    avatar: "/placeholder.svg?height=64&width=64",
+      "As a full-time banker, Farmshare makes healthy eating easy. I get premium beef and fresh produce without middlemen, saving me time and money. It's a game-changer for my busy schedule.",
+    name: "Amara Okeke",
+    title: "Financial Analyst",
+    image: "/assets/testimonials/testimonial-vi.png",
   },
   {
     id: 2,
     quote:
-      "The quality of produce I get from FarmShare is unmatched. Knowing it comes directly from farmers makes it even better.",
-    name: "Adaeze Okonkwo",
-    title: "Restaurant Owner",
-    avatar: "/placeholder.svg?height=64&width=64",
+      "Farmshare has cut my costs and boosted my profits. I get the freshest meat in bulk, straight from the farm, no middlemen. My customers love it!",
+    name: "Mama Bisi",
+    title: "Caterer and Bulk Food Supplier",
+    image: "/assets/testimonials/testimonial-viii.png",
   },
   {
     id: 3,
     quote:
-      "Joining pools has saved me so much money! I get bulk prices without having to buy in bulk. It's genius.",
-    name: "Tunde Bakare",
-    title: "Small Business Owner",
-    avatar: "/placeholder.svg?height=64&width=64",
+      "Farmshare is the future of food sourcing – fresh, direct, and community-driven. It's a smart way to save and support local farmers.",
+    name: "Chukwu Emmanuel",
+    title: "Founder, Micropay",
+    image: "/assets/testimonials/testimonial-1.png",
+  },
+  {
+    id: 4,
+    quote:
+      "Since I started using Farmshare for all my major groceries, I have saved so much time and money. The quality of products have been the best I have ever used. I am so glad I found Farmshare.",
+    name: "Mrs. Omawunmi Ajoke",
+    title: "Stay home mom",
+    image: "/assets/testimonials/testimonial-v.png",
   },
 ];
 
@@ -58,84 +71,93 @@ const stats = [
   { label: "Trusted Vendors", value: "150+", icon: Shield },
 ];
 
+interface Pool {
+  id: string;
+  product_name: string;
+  product_image: string;
+  price_per_slot: number;
+  slots_count: number;
+  slots_filled: number;
+  vendor_name: string;
+  allow_home_delivery: boolean;
+  delivery_deadline: string;
+}
+
 export default function HomePage() {
   const { isAuthenticated } = useStore();
   const router = useRouter();
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-  const [pools, setPools] = useState([]);
+  const [pools, setPools] = useState<Pool[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isVisible, setIsVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Trigger animations on mount
+  // Fetch real pools from API - optimized with useCallback
   useEffect(() => {
-    setIsVisible(true);
-  }, []);
+    let isMounted = true;
 
-  // Fetch real pools from API
-  useEffect(() => {
     const fetchPools = async () => {
       try {
-        setLoading(true);
-        const response = await httpRequest.get("/pools");
-        // Get only first 4 pools for homepage display
-        const homepagePools = (response || []).slice(0, 4);
-        setPools(homepagePools);
+        const response = await httpRequest.get<Pool[]>("/pools");
+        if (isMounted) {
+          setPools((response || []).slice(0, 4));
+          setLoading(false);
+        }
       } catch (error) {
         console.error("Failed to fetch pools:", error);
-        setPools([]);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setPools([]);
+          setLoading(false);
+        }
       }
     };
 
     fetchPools();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
+  // Testimonial auto-rotation with longer interval
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
+    }, 8000); // Increased from 5000 to reduce re-renders
     return () => clearInterval(timer);
   }, []);
 
-  const handleJoinPool = (poolId: string) => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=/buyer/pool/${poolId}`);
-    } else {
-      router.push(`/buyer/pool/${poolId}`);
-    }
-  };
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleJoinPool = useCallback(
+    (poolId: string) => {
+      if (!isAuthenticated) {
+        router.push(`/login?redirect=/buyer/pool/${poolId}`);
+      } else {
+        router.push(`/buyer/pool/${poolId}`);
+      }
+    },
+    [isAuthenticated, router]
+  );
 
-  const nextTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-  };
-
-  const prevTestimonial = () => {
-    setCurrentTestimonial(
-      (prev) => (prev - 1 + testimonials.length) % testimonials.length
+  // Memoized filtered pools for search
+  const filteredPools = useMemo(() => {
+    if (!searchQuery.trim()) return pools;
+    return pools.filter((pool) =>
+      pool.product_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  };
+  }, [pools, searchQuery]);
 
   return (
-    <div className="flex flex-col overflow-x-hidden w-full max-w-full">
-      {/* Hero Section - Enhanced with gradient overlay and animations */}
+    <div className="flex flex-col w-full max-w-full">
+      {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-dark text-primary-foreground py-20 md:py-28 lg:py-32 w-full">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-white/5 blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-gradient-radial from-white/5 to-transparent" />
+        {/* Simplified decorative background - removed heavy blur effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-accent/10" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-white/5" />
         </div>
 
         <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full relative z-10">
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div
-              className={`space-y-8 transition-all duration-700 ${
-                isVisible
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
-              }`}
-            >
+            <div className="space-y-8">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
                 <Sparkles className="h-4 w-4 text-accent" />
@@ -163,20 +185,20 @@ export default function HomePage() {
                   </svg>
                 </span>
                 <br />
-                at your Fingertips
+                Always Cheap
               </h1>
 
               <p className="text-lg md:text-xl text-primary-foreground/85 leading-relaxed max-w-xl">
                 Connect directly with verified farmers, join buying pools, and
                 access wholesale prices on premium agricultural products. Save
-                money together with your community.
+                money together by buying together.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
                   asChild
-                  className="bg-accent hover:bg-accent/90 text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-accent/25 hover-lift group"
+                  className="bg-accent hover:bg-accent/90 text-white rounded-full px-8 py-6 text-lg font-semibold shadow-lg shadow-accent/25 group"
                 >
                   <Link href="#product" className="flex items-center gap-2">
                     Join a Pool
@@ -195,15 +217,9 @@ export default function HomePage() {
 
               {/* Stats row */}
               <div className="flex flex-wrap gap-8 pt-4">
-                {stats.map((stat, index) => (
-                  <div
-                    key={stat.label}
-                    className={`flex items-center gap-3 transition-all duration-500 delay-${
-                      (index + 1) * 100
-                    }`}
-                    style={{ transitionDelay: `${(index + 1) * 100}ms` }}
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
                       <stat.icon className="h-5 w-5 text-accent" />
                     </div>
                     <div>
@@ -217,16 +233,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div
-              className={`relative transition-all duration-700 delay-200 ${
-                isVisible
-                  ? "opacity-100 translate-x-0"
-                  : "opacity-0 translate-x-8"
-              }`}
-            >
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/30">
-                {/* Decorative frame */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-accent/50 via-white/20 to-accent/50 rounded-3xl blur-sm" />
+            <div className="relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <div className="relative rounded-3xl overflow-hidden border-2 border-white/20">
                   <Image
                     src="/placeholder.jpg"
@@ -239,11 +247,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Floating cards */}
-              <div
-                className="absolute -bottom-6 -left-6 bg-white dark:bg-card rounded-xl shadow-xl p-4 animate-fade-in-up"
-                style={{ animationDelay: "500ms" }}
-              >
+              {/* Floating cards - simplified */}
+              <div className="absolute -bottom-6 -left-6 bg-white dark:bg-card rounded-xl shadow-xl p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-success/20 flex items-center justify-center">
                     <TrendingUp className="h-5 w-5 text-success" />
@@ -259,10 +264,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div
-                className="absolute -top-4 -right-4 bg-white dark:bg-card rounded-xl shadow-xl p-4 animate-fade-in-down"
-                style={{ animationDelay: "700ms" }}
-              >
+              <div className="absolute -top-4 -right-4 bg-white dark:bg-card rounded-xl shadow-xl p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center">
                     <Leaf className="h-5 w-5 text-accent" />
@@ -282,7 +284,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Social Proof Section - New */}
+      {/* Social Proof Section */}
       <section className="py-6 bg-muted/50 border-y border-border/50 w-full">
         <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 text-muted-foreground">
@@ -305,13 +307,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials Section - Enhanced */}
-      <section
-        id="testimonials"
-        className="py-20 md:py-28 bg-background w-full"
-      >
+      {/* Quote Card + 100k+ Section - Restored */}
+      <section className="py-20 md:py-28 bg-background w-full">
         <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Quote Card */}
             <Card className="border-2 shadow-xl hover-lift card-premium">
               <CardContent className="p-8 md:p-10 space-y-6">
                 <div className="flex items-start gap-4">
@@ -339,6 +339,7 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
+            {/* 100k+ Stats */}
             <div className="space-y-6">
               <Badge variant="secondary" className="mb-4">
                 <Users className="h-3 w-3 mr-1" />
@@ -374,11 +375,7 @@ export default function HomePage() {
         className="py-20 md:py-28 bg-gradient-to-b from-background to-muted/30 w-full"
       >
         <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full">
-          <div className="text-center mb-16 space-y-4">
-            <Badge variant="secondary" className="mb-4">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Fresh Opportunities
-            </Badge>
+          <div className="text-center mb-12 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance">
               Available Pools
             </h2>
@@ -387,96 +384,139 @@ export default function HomePage() {
               products. Connect directly with verified vendors and save money
               together.
             </p>
+
+            {/* Search Bar */}
+            <div className="max-w-xl mx-auto pt-6">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search for products (e.g., Yam, Fish, Cow...)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-4 py-6 text-lg rounded-full border-2 border-border/50 focus:border-primary shadow-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
             {loading ? (
               // Enhanced loading skeleton with shimmer
               Array.from({ length: 4 }).map((_, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <div className="relative h-48 shimmer" />
-                  <CardContent className="p-5 space-y-4">
-                    <div className="h-5 shimmer rounded-md w-3/4" />
-                    <div className="h-4 shimmer rounded-md w-full" />
-                    <div className="h-4 shimmer rounded-md w-1/2" />
-                    <div className="pt-4 border-t">
-                      <div className="h-10 shimmer rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
+                <div
+                  key={index}
+                  className="pt-10 pb-20 px-8 bg-white dark:bg-card rounded-3xl shadow-lg relative"
+                >
+                  <div className="h-32 w-32 shimmer rounded-lg mb-6" />
+                  <div className="h-8 shimmer rounded-md w-1/2 mb-6" />
+                  <div className="h-12 shimmer rounded-full w-full mb-6" />
+                  <div className="h-10 shimmer rounded-md w-3/4 mb-3" />
+                  <div className="h-5 shimmer rounded-md w-1/2" />
+                </div>
               ))
             ) : pools.length > 0 ? (
               pools.map((pool, index) => (
-                <Card
+                <div
                   key={pool.id}
-                  className={`overflow-hidden card-premium group animate-fade-in-up`}
+                  className="pt-8 pb-24 px-8 bg-white dark:bg-card rounded-3xl shadow-lg hover:shadow-2xl relative cursor-pointer hover:bg-primary group transition-all duration-300 animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="relative h-48 bg-muted overflow-hidden">
+                  {/* Decorative star image */}
+                  <Image
+                    src={`/assets/pricing/star${
+                      (index % 3) + 1 === 1
+                        ? "one"
+                        : (index % 3) + 1 === 2
+                        ? "two"
+                        : "three"
+                    }.svg`}
+                    alt="decorative"
+                    width={120}
+                    height={120}
+                    className="absolute bottom-0 right-0 opacity-50 group-hover:opacity-70 transition-opacity"
+                  />
+
+                  {/* Product Image */}
+                  <div className="relative h-28 w-28 mb-4 rounded-2xl overflow-hidden bg-muted">
                     <Image
                       src={pool.product_image || "/placeholder.svg"}
                       alt={pool.product_name}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <Badge className="absolute top-3 right-3 bg-accent text-white shadow-lg">
-                      {pool.slots_filled}/{pool.slots_count} filled
+                    <Badge className="absolute -top-1 -right-1 bg-accent text-white text-xs shadow-lg">
+                      {pool.slots_filled}/{pool.slots_count}
                     </Badge>
                   </div>
-                  <CardContent className="p-5 space-y-4">
-                    <div>
-                      <h3 className="font-semibold text-xl group-hover:text-primary transition-colors">
-                        {pool.product_name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {pool.product_description}
+
+                  {/* Product Name */}
+                  <h4 className="text-3xl sm:text-4xl font-semibold mb-6 text-foreground group-hover:text-white transition-colors">
+                    {pool.product_name}
+                  </h4>
+
+                  {/* Join Button */}
+                  <Button
+                    onClick={() => handleJoinPool(pool.id)}
+                    className="text-lg font-medium text-white w-full bg-primary hover:bg-primary/90 group-hover:bg-accent group-hover:border-accent border-2 border-primary rounded-full py-5 px-8 mb-6 transition-all duration-300"
+                    disabled={pool.slots_filled >= pool.slots_count}
+                  >
+                    {pool.slots_filled >= pool.slots_count
+                      ? "Pool Full"
+                      : "Join this pool"}
+                  </Button>
+
+                  {/* Pricing */}
+                  <h2 className="text-3xl sm:text-4xl font-semibold text-foreground mb-2 group-hover:text-white transition-colors">
+                    ₦{(pool.price_per_slot / 1000).toFixed(0)}k/
+                    <span className="text-muted-foreground group-hover:text-white/60">
+                      slot
+                    </span>
+                  </h2>
+                  <p className="text-base font-normal text-muted-foreground group-hover:text-white/80 transition-colors mb-4">
+                    {pool.vendor_name}
+                  </p>
+
+                  {/* Features */}
+                  <div className="space-y-3 pt-4">
+                    <div className="flex gap-3 items-center">
+                      <Image
+                        src="/assets/pricing/tick.svg"
+                        alt="check"
+                        width={24}
+                        height={24}
+                      />
+                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
+                        {pool.allow_home_delivery
+                          ? "Home delivery available"
+                          : "Pickup only"}
                       </p>
                     </div>
-
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Users className="h-4 w-4 text-primary" />
-                        <span>{pool.vendor_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4 text-warning" />
-                        <span>
-                          Closes{" "}
-                          {new Date(
-                            pool.delivery_deadline
-                          ).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {pool.allow_home_delivery && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4 text-success" />
-                          <span>Home delivery available</span>
-                        </div>
-                      )}
+                    <div className="flex gap-3 items-center">
+                      <Image
+                        src="/assets/pricing/tick.svg"
+                        alt="check"
+                        width={24}
+                        height={24}
+                      />
+                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
+                        Closes{" "}
+                        {new Date(pool.delivery_deadline).toLocaleDateString()}
+                      </p>
                     </div>
-
-                    <div className="pt-4 border-t border-border/50">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="text-sm text-muted-foreground">
-                          Price per slot
-                        </span>
-                        <span className="text-2xl font-bold text-primary">
-                          ₦{pool.price_per_slot.toLocaleString()}
-                        </span>
-                      </div>
-                      <Button
-                        onClick={() => handleJoinPool(pool.id)}
-                        className="w-full bg-accent hover:bg-accent/90 text-white py-6 rounded-xl font-semibold shadow-lg shadow-accent/20 hover-glow transition-all duration-300"
-                        disabled={pool.slots_filled >= pool.slots_count}
-                      >
-                        {pool.slots_filled >= pool.slots_count
-                          ? "Pool Full"
-                          : "Join Pool"}
-                      </Button>
+                    <div className="flex gap-3 items-center">
+                      <Image
+                        src="/assets/pricing/tick.svg"
+                        alt="check"
+                        width={24}
+                        height={24}
+                      />
+                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
+                        {pool.slots_count - pool.slots_filled} slots remaining
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))
             ) : (
               <div className="col-span-full text-center py-16">
@@ -512,15 +552,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pool Collaboration Section - Enhanced */}
+      {/* Pool Collaboration Section - With overflow image */}
       <section
         id="pools"
-        className="py-20 md:py-28 bg-secondary w-full relative overflow-hidden"
+        className="pt-20 md:pt-28 pb-0 bg-[#fce8e6] w-full relative overflow-visible"
       >
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-
         <div className="px-[30px] lg:px-[60px] max-w-[1400px] mx-auto w-full relative z-10">
           <div className="text-center mb-16 space-y-6">
             <Badge
@@ -535,58 +571,29 @@ export default function HomePage() {
               <br className="hidden md:block" /> a full cow now.
             </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Pool together with other buyers to access wholesale prices on
-              premium products. Track your pool's progress in real-time and get
-              notified when it's ready for delivery.
+              Whether it's choosing reusable food and liquid containers or
+              picking the vegetarian option for the office lunch, Greenlist
+              gives your workforce the power of changing their habits and making
+              choices that have less harmful effects on the environment.
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl max-w-full group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-3xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative rounded-3xl overflow-hidden border-2 border-border/30 bg-card">
-                <Image
-                  src="/placeholder.jpg"
-                  alt="Community pool members chatting about delivery and food orders"
-                  width={800}
-                  height={500}
-                  className="w-full h-auto max-w-full transition-transform duration-500 group-hover:scale-[1.02]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Feature highlights */}
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Real-time Updates</h3>
-              <p className="text-sm text-muted-foreground">
-                Track pool progress and member activity instantly
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 mb-4">
-                <Shield className="h-6 w-6 text-accent" />
-              </div>
-              <h3 className="font-semibold mb-2">Secure Payments</h3>
-              <p className="text-sm text-muted-foreground">
-                Funds held in escrow until delivery confirmation
-              </p>
-            </div>
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success/10 mb-4">
-                <TrendingUp className="h-6 w-6 text-success" />
-              </div>
-              <h3 className="font-semibold mb-2">Save Together</h3>
-              <p className="text-sm text-muted-foreground">
-                Access wholesale prices through collective buying
-              </p>
+          {/* Image that extends beyond container */}
+          <div className="max-w-4xl mx-auto relative">
+            <div className="relative rounded-3xl overflow-visible shadow-2xl">
+              <Image
+                src="/assets/business/business.png"
+                alt="Community pool members chatting about delivery and food orders"
+                width={900}
+                height={600}
+                className="w-full h-auto rounded-3xl transform translate-y-16"
+              />
             </div>
           </div>
         </div>
+
+        {/* Spacer for the overflow */}
+        <div className="h-32 md:h-40"></div>
       </section>
 
       {/* Features Section - Enhanced with better visual hierarchy */}
@@ -828,131 +835,60 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Scroll to top button - Enhanced */}
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-8 right-8 h-12 w-12 rounded-full bg-accent text-white shadow-lg shadow-accent/25 hover:bg-accent/90 hover:shadow-xl hover:shadow-accent/30 transition-all duration-300 flex items-center justify-center z-40 hover-scale"
-        aria-label="Scroll to top"
+      {/* Testimonials Section - What Users Say (Before Footer) */}
+      <section
+        id="testimonials"
+        className="pt-20 md:pt-28 pb-0 bg-gray-50 w-full"
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 10l7-7m0 0l7 7m-7-7v18"
-          />
-        </svg>
-      </button>
-
-      {/* What Users Say Section - Clean & Minimal */}
-      <section className="py-20 md:py-28 bg-background w-full">
-        <div className="px-[30px] lg:px-[60px] max-w-[1000px] mx-auto w-full">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
+        <div className="relative flex flex-col lg:flex-row items-stretch max-w-full bg-muted/30 overflow-hidden">
+          {/* Text Content */}
+          <div className="flex-1 p-10 lg:p-20 flex flex-col justify-center">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-8">
               What Users Say
             </h2>
+            <p className="text-xl md:text-2xl mb-6 text-muted-foreground leading-relaxed">
+              "{testimonials[currentTestimonial].quote}"
+            </p>
+            <p className="text-lg font-semibold text-foreground mt-4">
+              {testimonials[currentTestimonial].name}
+            </p>
+            <p className="text-muted-foreground mb-8">
+              {testimonials[currentTestimonial].title}
+            </p>
+            <Link
+              href="/about"
+              className="inline-block text-primary font-semibold hover:text-primary/80 transition-colors uppercase tracking-wide"
+            >
+              MORE STORIES
+            </Link>
           </div>
 
-          <div className="relative">
-            {/* Main testimonial */}
-            <div className="text-center space-y-8 py-8">
-              <blockquote className="text-xl md:text-2xl lg:text-3xl text-foreground leading-relaxed font-medium max-w-3xl mx-auto">
-                "{testimonials[currentTestimonial].quote}"
-              </blockquote>
-
-              <div className="flex flex-col items-center gap-2 pt-4">
-                <h3 className="font-semibold text-lg">
-                  {testimonials[currentTestimonial].name}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  {testimonials[currentTestimonial].title}
-                </p>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <div className="flex items-center justify-center gap-4 mt-8">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={prevTestimonial}
-                className="rounded-full h-10 w-10 hover:bg-muted transition-colors"
-                aria-label="Previous testimonial"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-
-              <div className="flex gap-2">
-                {testimonials.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentTestimonial(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentTestimonial
-                        ? "w-8 bg-accent"
-                        : "w-2 bg-muted-foreground/20 hover:bg-muted-foreground/40"
-                    }`}
-                    aria-label={`Go to testimonial ${index + 1}`}
-                  />
-                ))}
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={nextTestimonial}
-                className="rounded-full h-10 w-10 hover:bg-muted transition-colors"
-                aria-label="Next testimonial"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* More Stories Link */}
-            <div className="text-center mt-10">
-              <Button
-                variant="outline"
-                asChild
-                className="rounded-full px-6 border-border/50 hover:border-accent hover:text-accent transition-colors"
-              >
-                <Link href="/testimonials">MORE STORIES</Link>
-              </Button>
-            </div>
+          {/* Image */}
+          <div className="flex-1 relative min-h-[400px] lg:min-h-[600px]">
+            <Image
+              src={testimonials[currentTestimonial].image}
+              alt={testimonials[currentTestimonial].name}
+              fill
+              className="object-cover object-top transition-opacity duration-1000 ease-in-out"
+            />
           </div>
-        </div>
-      </section>
 
-      {/* CTA Section - Clean & Minimal */}
-      <section className="py-16 md:py-20 border-t border-border/50 w-full">
-        <div className="px-[30px] lg:px-[60px] max-w-[1000px] mx-auto w-full text-center">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4">
-            Ready to Start Saving?
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-            Join thousands of farmers and buyers already enjoying collective
-            purchasing power.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              size="lg"
-              asChild
-              className="bg-accent hover:bg-accent/90 text-white rounded-full px-8 font-semibold"
-            >
-              <Link href="/signup">Get Started Free</Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              asChild
-              className="rounded-full px-8 border-border/50 hover:border-accent hover:text-accent transition-colors"
-            >
-              <Link href="/contact">Contact Sales</Link>
-            </Button>
+          {/* Navigation Dots */}
+          <div className="absolute right-6 lg:right-10 top-1/2 transform -translate-y-1/2 flex flex-col gap-4 z-10">
+            {testimonials.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentTestimonial(i)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  currentTestimonial === i
+                    ? "bg-primary scale-125"
+                    : i < currentTestimonial
+                    ? "bg-primary/60"
+                    : "bg-accent/50 hover:bg-accent"
+                }`}
+                aria-label={`Go to testimonial ${i + 1}`}
+              />
+            ))}
           </div>
         </div>
       </section>
