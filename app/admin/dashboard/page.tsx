@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   Table,
@@ -24,6 +26,7 @@ import Link from "next/link";
 import { useAdminDashboard } from "@/hooks/use-admin";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { useAdminAuth } from "@/hooks/use-admin";
+import { adminService } from "@/lib/admin.service";
 import {
   RevenueChart,
   UserGrowthChart,
@@ -34,33 +37,63 @@ export default function AdminDashboardPage() {
   const { admin, isAdminAuthenticated } = useAdminAuth();
   const { adminDashboard, loading, loadDashboard } = useAdminDashboard();
 
-  // Mock data for charts
-  const revenueData = [
-    { name: "Mon", revenue: 45000 },
-    { name: "Tue", revenue: 52000 },
-    { name: "Wed", revenue: 48000 },
-    { name: "Thu", revenue: 61000 },
-    { name: "Fri", revenue: 55000 },
-    { name: "Sat", revenue: 67000 },
-    { name: "Sun", revenue: 72000 },
-  ];
+  // Real metrics data from API
+  const [revenueData, setRevenueData] = useState<
+    Array<{ name: string; revenue: number }>
+  >([]);
+  const [userGrowthData, setUserGrowthData] = useState<
+    Array<{ name: string; users: number; vendors: number; buyers: number }>
+  >([]);
+  const [poolDistributionData, setPoolDistributionData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-  const userGrowthData = [
-    { name: "Jan", users: 120, vendors: 15, buyers: 105 },
-    { name: "Feb", users: 145, vendors: 18, buyers: 127 },
-    { name: "Mar", users: 178, vendors: 22, buyers: 156 },
-    { name: "Apr", users: 195, vendors: 26, buyers: 169 },
-    { name: "May", users: 234, vendors: 31, buyers: 203 },
-    { name: "Jun", users: 267, vendors: 36, buyers: 231 },
-  ];
+  // Load metrics on mount
+  useEffect(() => {
+    const loadMetrics = async () => {
+      if (!isAdminAuthenticated) return;
 
-  const poolDistributionData = [
-    { name: "Vegetables", value: 45, color: "hsl(var(--chart-1))" },
-    { name: "Fruits", value: 25, color: "hsl(var(--chart-2))" },
-    { name: "Grains", value: 18, color: "hsl(var(--chart-3))" },
-    { name: "Dairy", value: 8, color: "hsl(var(--chart-4))" },
-    { name: "Other", value: 4, color: "hsl(var(--chart-5))" },
-  ];
+      setMetricsLoading(true);
+      try {
+        const [revenue, userGrowth, poolDistribution] = await Promise.all([
+          adminService.getRevenueMetrics("week"),
+          adminService.getUserGrowthMetrics("month"),
+          adminService.getPoolDistributionMetrics(),
+        ]);
+
+        setRevenueData(revenue);
+        setUserGrowthData(userGrowth);
+        setPoolDistributionData(poolDistribution);
+      } catch (error) {
+        console.error("Failed to load metrics:", error);
+        // Fallback to empty data
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+
+    loadMetrics();
+  }, [isAdminAuthenticated]);
+
+  const refreshMetrics = async () => {
+    setMetricsLoading(true);
+    try {
+      const [revenue, userGrowth, poolDistribution] = await Promise.all([
+        adminService.getRevenueMetrics("week"),
+        adminService.getUserGrowthMetrics("month"),
+        adminService.getPoolDistributionMetrics(),
+      ]);
+
+      setRevenueData(revenue);
+      setUserGrowthData(userGrowth);
+      setPoolDistributionData(poolDistribution);
+    } catch (error) {
+      console.error("Failed to refresh metrics:", error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
 
   // Check if admin is authenticated
   if (!isAdminAuthenticated) {
@@ -240,13 +273,39 @@ export default function AdminDashboardPage() {
           </Card>
 
           {/* Charts Section */}
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-semibold">Analytics</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshMetrics}
+              disabled={metricsLoading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${
+                  metricsLoading ? "animate-spin" : ""
+                }`}
+              />
+              Refresh
+            </Button>
+          </div>
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Weekly Revenue</CardTitle>
               </CardHeader>
               <CardContent>
-                <RevenueChart data={revenueData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : revenueData.length > 0 ? (
+                  <RevenueChart data={revenueData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No revenue data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -255,7 +314,17 @@ export default function AdminDashboardPage() {
                 <CardTitle>User Growth</CardTitle>
               </CardHeader>
               <CardContent>
-                <UserGrowthChart data={userGrowthData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : userGrowthData.length > 0 ? (
+                  <UserGrowthChart data={userGrowthData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No user growth data available
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -266,7 +335,17 @@ export default function AdminDashboardPage() {
                 <CardTitle>Pool Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <PoolDistributionChart data={poolDistributionData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[200px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : poolDistributionData.length > 0 ? (
+                  <PoolDistributionChart data={poolDistributionData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No pool distribution data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -1,6 +1,6 @@
 import { httpRequest } from "./httpRequest";
 
-export type PaymentMethod = 'STRIPE' | 'PAYSTACK';
+export type PaymentMethod = "STRIPE" | "PAYSTACK";
 
 export interface InitPaymentDto {
   method: PaymentMethod;
@@ -8,8 +8,18 @@ export interface InitPaymentDto {
   slots: number;
   waybillWithin: boolean;
   waybillOutside: boolean;
+  idempotencyKey?: string;
 }
 
+// Actual backend response format
+export interface PaymentInitResponse {
+  method: "STRIPE" | "PAYSTACK";
+  url: string;
+  pendingId: string;
+  alreadyProcessed?: boolean;
+}
+
+// Wrapper for consistent frontend interface
 export interface PaymentResponse {
   success: boolean;
   message: string;
@@ -38,11 +48,32 @@ export class PaymentService {
    */
   async initiatePayment(data: InitPaymentDto): Promise<PaymentResponse> {
     try {
-      const response = await httpRequest.post<PaymentResponse>('/payments/pay', data);
-      return response;
+      // Generate idempotency key if not provided
+      if (!data.idempotencyKey) {
+        data.idempotencyKey = `pk_${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 10)}`;
+      }
+
+      const response = await httpRequest.post<PaymentInitResponse>(
+        "/payments/pay",
+        data
+      );
+
+      // Transform backend response to frontend expected format
+      return {
+        success: true,
+        message: "Payment initiated successfully",
+        data: {
+          paymentUrl: response.url,
+          pendingSubscriptionId: response.pendingId,
+        },
+      };
     } catch (error: any) {
-      console.error('Failed to initiate payment:', error);
-      throw new Error(error.response?.data?.message || 'Failed to initiate payment');
+      console.error("Failed to initiate payment:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to initiate payment"
+      );
     }
   }
 
@@ -51,11 +82,15 @@ export class PaymentService {
    */
   async verifyPaystack(reference: string): Promise<PaymentVerification> {
     try {
-      const response = await httpRequest.post<PaymentVerification>(`/payments/paystack/verify?reference=${reference}`);
+      const response = await httpRequest.post<PaymentVerification>(
+        `/payments/paystack/verify?reference=${reference}`
+      );
       return response;
     } catch (error: any) {
-      console.error('Failed to verify Paystack payment:', error);
-      throw new Error(error.response?.data?.message || 'Failed to verify payment');
+      console.error("Failed to verify Paystack payment:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to verify payment"
+      );
     }
   }
 

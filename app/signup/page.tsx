@@ -40,6 +40,47 @@ interface SignupResponse {
   user: { id: string; name: string; email: string; role: string };
 }
 
+// Nigerian states for location selection
+const NIGERIAN_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+] as const;
+
 export default function SignupPage() {
   const router = useRouter();
   const setUser = useStore((state) => state.setUser);
@@ -51,6 +92,8 @@ export default function SignupPage() {
     phone: "",
     password: "",
     confirmPassword: "",
+    state: "",
+    city: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -75,6 +118,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (!formData.state) {
+      setError("Please select your state");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -83,7 +131,10 @@ export default function SignupPage() {
           ? httpRequest.endpoints.auth.signupVendor
           : httpRequest.endpoints.auth.signupBuyer;
 
-      await httpRequest.post<void>(endpoint, formData);
+      await httpRequest.post<void>(endpoint, {
+        ...formData,
+        country: "Nigeria",
+      });
 
       // ✅ Redirect to verify-otp page with email + role
       router.push(`/auth/verify-otp?email=${formData.email}&role=${role}`);
@@ -453,6 +504,54 @@ export default function SignupPage() {
                       className="pl-10 h-12 bg-muted/50 border-border/50 focus:bg-background transition-colors"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state" className="text-sm font-medium">
+                    State <span className="text-destructive">*</span>
+                  </Label>
+                  <select
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) =>
+                      setFormData({ ...formData, state: e.target.value })
+                    }
+                    required
+                    disabled={isLoading}
+                    className="flex h-12 w-full rounded-md border border-border/50 bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:bg-background transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select your state</option>
+                    {NIGERIAN_STATES.map((state) => (
+                      <option key={state} value={state}>
+                        {state}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground pl-1">
+                    {role === "buyer"
+                      ? "You'll see vendors in your state by default"
+                      : "Buyers in your state will see your pools first"}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-sm font-medium">
+                    City{" "}
+                    <span className="text-muted-foreground text-xs">
+                      (Optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="city"
+                    type="text"
+                    placeholder="e.g., Ikeja, Victoria Island"
+                    value={formData.city}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
+                    disabled={isLoading}
+                    className="h-12 bg-muted/50 border-border/50 focus:bg-background transition-colors"
+                  />
                 </div>
 
                 <div className="space-y-2">

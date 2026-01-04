@@ -1,56 +1,103 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Separator } from "@/components/ui/separator"
-import { CheckCircle, Clock, Truck, MapPin, Users, Package, AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { EnhancedCheckoutModal } from "@/components/buyer/enhanced-checkout-modal"
-import { httpRequest } from "@/lib/httpRequest"
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import {
+  CheckCircle,
+  Clock,
+  Truck,
+  MapPin,
+  Users,
+  Package,
+  AlertCircle,
+  ArrowLeft,
+  Loader2,
+  TrendingUp,
+  Star,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { EnhancedCheckoutModal } from "@/components/buyer/enhanced-checkout-modal";
+import { httpRequest } from "@/lib/httpRequest";
+import { MarketplacePoolCard } from "@/components/buyer/marketplace-pool-card";
 
 export default function PoolDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
-  const [pool, setPool] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const params = useParams();
+  const router = useRouter();
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [pool, setPool] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [popularPools, setPopularPools] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchPool = async () => {
       if (!params.id) {
-        setError("Pool ID is required")
-        setLoading(false)
-        return
+        setError("Pool ID is required");
+        setLoading(false);
+        return;
       }
 
       try {
-        setLoading(true)
-        setError(null)
-        const response = await httpRequest.get(`/pools/${params.id}`)
-        setPool(response)
+        setLoading(true);
+        setError(null);
+        const response = await httpRequest.get(`/pools/${params.id}`);
+        setPool(response);
       } catch (err: any) {
-        console.error('Failed to fetch pool:', err)
-        setError(err?.response?.data?.message || 'Pool not found')
-        setPool(null)
+        console.error("Failed to fetch pool:", err);
+        setError(err?.response?.data?.message || "Pool not found");
+        setPool(null);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchPool()
-  }, [params.id])
+    fetchPool();
+  }, [params.id]);
+
+  // Fetch popular/fast-selling pools
+  useEffect(() => {
+    const fetchPopularPools = async () => {
+      try {
+        const response = await httpRequest.get("/pools");
+        // Filter and sort by slots_filled to get fast-selling pools
+        const allPools = response.data || [];
+        const sorted = allPools
+          .filter((p: any) => p.id !== params.id && p.status === "open")
+          .sort((a: any, b: any) => {
+            // Sort by fill percentage (most filled first)
+            const aFillRate = a.slots_filled / a.slots_count;
+            const bFillRate = b.slots_filled / b.slots_count;
+            return bFillRate - aFillRate;
+          })
+          .slice(0, 4);
+        setPopularPools(sorted);
+      } catch (err) {
+        console.warn("Failed to fetch popular pools:", err);
+      }
+    };
+
+    if (params.id) {
+      fetchPopularPools();
+    }
+  }, [params.id]);
 
   const handleJoinPool = () => {
-    if (!pool) return
-    setIsCheckoutOpen(true)
-  }
+    if (!pool) return;
+    setIsCheckoutOpen(true);
+  };
 
   if (loading) {
     return (
@@ -60,7 +107,7 @@ export default function PoolDetailPage() {
           <span>Loading pool details...</span>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !pool) {
@@ -68,18 +115,22 @@ export default function PoolDetailPage() {
       <div className="container px-[30px] py-8">
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
           <AlertCircle className="h-16 w-16 text-destructive" />
-          <h1 className="text-2xl font-bold text-destructive">Pool Not Found</h1>
-          <p className="text-muted-foreground max-w-md">{error || 'This pool may have been closed or does not exist.'}</p>
-          <Button onClick={() => router.push('/buyer/marketplace')}>
+          <h1 className="text-2xl font-bold text-destructive">
+            Pool Not Found
+          </h1>
+          <p className="text-muted-foreground max-w-md">
+            {error || "This pool may have been closed or does not exist."}
+          </p>
+          <Button onClick={() => router.push("/buyer/marketplace")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Marketplace
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
-  const fillPercentage = (pool.slots_filled / pool.slots_count) * 100
+  const fillPercentage = (pool.slots_filled / pool.slots_count) * 100;
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,7 +140,7 @@ export default function PoolDetailPage() {
           variant="ghost"
           size="sm"
           className="mb-6"
-          onClick={() => router.push('/buyer/marketplace')}
+          onClick={() => router.push("/buyer/marketplace")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Marketplace
@@ -109,7 +160,7 @@ export default function PoolDetailPage() {
                 />
                 <div className="absolute top-4 left-4">
                   <Badge variant="secondary" className="text-lg px-3 py-1">
-                    {pool.category?.toUpperCase() || 'OTHER'}
+                    {pool.category?.toUpperCase() || "OTHER"}
                   </Badge>
                 </div>
                 {pool.vendor_verified && (
@@ -133,7 +184,9 @@ export default function PoolDetailPage() {
                         {pool.vendor_name}
                       </span>
                       <span>•</span>
-                      <span>{pool.slots_filled}/{pool.slots_count} slots filled</span>
+                      <span>
+                        {pool.slots_filled}/{pool.slots_count} slots filled
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -151,8 +204,16 @@ export default function PoolDetailPage() {
                       <Truck className="w-5 h-5 text-primary" />
                       <span className="font-medium">Home Delivery</span>
                     </div>
-                    <Badge variant={pool.allow_home_delivery ? "default" : "secondary"}>
-                      {pool.allow_home_delivery ? "Available (+₦" + (pool.home_delivery_cost || 0).toLocaleString() + ")" : "Not Available"}
+                    <Badge
+                      variant={
+                        pool.allow_home_delivery ? "default" : "secondary"
+                      }
+                    >
+                      {pool.allow_home_delivery
+                        ? "Available (+₦" +
+                          (pool.home_delivery_cost || 0).toLocaleString() +
+                          ")"
+                        : "Not Available"}
                     </Badge>
                   </div>
 
@@ -162,7 +223,8 @@ export default function PoolDetailPage() {
                       <span className="font-medium">Delivery Timeline</span>
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      Closes {new Date(pool.delivery_deadline).toLocaleDateString()}
+                      Closes{" "}
+                      {new Date(pool.delivery_deadline).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
@@ -180,7 +242,9 @@ export default function PoolDetailPage() {
                   <Progress value={fillPercentage} className="h-3" />
                   <div className="flex items-center justify-between text-sm">
                     <span>{pool.slots_filled} buyers joined</span>
-                    <span>{pool.slots_count - pool.slots_filled} slots remaining</span>
+                    <span>
+                      {pool.slots_count - pool.slots_filled} slots remaining
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -196,21 +260,27 @@ export default function PoolDetailPage() {
                   <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                   <div>
                     <h4 className="font-medium">Verified Vendors</h4>
-                    <p className="text-sm text-muted-foreground">All vendors are verified and rated</p>
+                    <p className="text-sm text-muted-foreground">
+                      All vendors are verified and rated
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                   <div>
                     <h4 className="font-medium">Secure Payments</h4>
-                    <p className="text-sm text-muted-foreground">Protected by Paystack escrow</p>
+                    <p className="text-sm text-muted-foreground">
+                      Protected by Paystack escrow
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
                   <div>
                     <h4 className="font-medium">Quality Guarantee</h4>
-                    <p className="text-sm text-muted-foreground">Full refund if not satisfied</p>
+                    <p className="text-sm text-muted-foreground">
+                      Full refund if not satisfied
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -227,7 +297,9 @@ export default function PoolDetailPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">per slot</p>
                   <p className="text-xs text-muted-foreground">
-                    Total pool value: ₦{pool.price_total?.toLocaleString() || (pool.price_per_slot * pool.slots_count).toLocaleString()}
+                    Total pool value: ₦
+                    {pool.price_total?.toLocaleString() ||
+                      (pool.price_per_slot * pool.slots_count).toLocaleString()}
                   </p>
                 </div>
 
@@ -236,14 +308,16 @@ export default function PoolDetailPage() {
                 <Button
                   onClick={handleJoinPool}
                   className="w-full"
-                  disabled={pool.status !== 'open' || pool.slots_filled >= pool.slots_count}
-                >
-                  {pool.status !== 'open'
-                    ? 'Pool Closed'
-                    : pool.slots_filled >= pool.slots_count
-                    ? 'Pool Full'
-                    : 'Join Pool'
+                  disabled={
+                    pool.status !== "open" ||
+                    pool.slots_filled >= pool.slots_count
                   }
+                >
+                  {pool.status !== "open"
+                    ? "Pool Closed"
+                    : pool.slots_filled >= pool.slots_count
+                    ? "Pool Full"
+                    : "Join Pool"}
                 </Button>
 
                 <div className="text-center space-y-2 text-xs text-muted-foreground">
@@ -254,6 +328,32 @@ export default function PoolDetailPage() {
             </Card>
           </div>
         </div>
+
+        {/* Fast Selling / Popular Pools Section */}
+        {popularPools.length > 0 && (
+          <div className="mt-12 space-y-6">
+            <Separator />
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-orange-500" />
+              <h2 className="text-2xl font-bold">Fast Selling Items</h2>
+              <Badge
+                variant="secondary"
+                className="bg-orange-100 text-orange-700"
+              >
+                <Star className="h-3 w-3 mr-1" />
+                Popular
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              Don't miss out on these trending pools
+            </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {popularPools.map((popularPool) => (
+                <MarketplacePoolCard key={popularPool.id} pool={popularPool} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Checkout Modal */}
@@ -263,5 +363,5 @@ export default function PoolDetailPage() {
         pool={pool}
       />
     </div>
-  )
+  );
 }

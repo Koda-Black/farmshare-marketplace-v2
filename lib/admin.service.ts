@@ -41,7 +41,7 @@ export interface AdminMfaDto {
 
 export interface SearchUsersDto {
   search?: string;
-  role?: 'buyer' | 'vendor' | 'admin';
+  role?: "buyer" | "vendor" | "admin";
   isVerified?: boolean;
   page?: number;
   limit?: number;
@@ -116,7 +116,7 @@ export interface Dispute {
   id: string;
   poolId: string;
   reason: string;
-  status: 'open' | 'in_review' | 'resolved' | 'rejected';
+  status: "open" | "in_review" | "resolved" | "rejected";
   evidenceFiles: string[];
   complainantCount: number;
   resolutionNotes?: string;
@@ -152,7 +152,7 @@ export interface PaginatedDisputes {
 
 export interface ResolveDisputeDto {
   disputeId: string;
-  action: 'refund' | 'release' | 'split';
+  action: "refund" | "release" | "split";
   distribution?: Record<string, number>;
   resolutionNotes?: string;
 }
@@ -248,12 +248,14 @@ class AdminService {
   /**
    * Admin signup with secret key
    */
-  async adminSignup(data: AdminSignupDto): Promise<{ message: string; admin: Admin }> {
+  async adminSignup(
+    data: AdminSignupDto
+  ): Promise<{ message: string; admin: Admin }> {
     try {
-      const response = await httpRequest.post<{ message: string; admin: Admin }>(
-        "/admin/signup",
-        data
-      );
+      const response = await httpRequest.post<{
+        message: string;
+        admin: Admin;
+      }>("/admin/signup", data);
       return response;
     } catch (error: any) {
       console.error("Admin signup failed:", error);
@@ -266,7 +268,10 @@ class AdminService {
    */
   async adminLogin(data: AdminLoginDto): Promise<AdminLoginResponse> {
     try {
-      const response = await httpRequest.post<AdminLoginResponse>("/admin/login", data);
+      const response = await httpRequest.post<AdminLoginResponse>(
+        "/admin/login",
+        data
+      );
       return response;
     } catch (error: any) {
       console.error("Admin login failed:", error);
@@ -279,18 +284,27 @@ class AdminService {
    */
   async verifyMfaLogin(data: AdminMfaDto): Promise<AdminLoginResponse> {
     try {
-      const response = await httpRequest.post<AdminLoginResponse>("/admin/login/mfa", data);
+      const response = await httpRequest.post<AdminLoginResponse>(
+        "/admin/login/mfa",
+        data
+      );
       return response;
     } catch (error: any) {
       console.error("MFA verification failed:", error);
-      throw new Error(error.response?.data?.message || "MFA verification failed");
+      throw new Error(
+        error.response?.data?.message || "MFA verification failed"
+      );
     }
   }
 
   /**
    * Enable MFA for admin account
    */
-  async enableMfa(): Promise<{ secret: string; qrCode: string; message: string }> {
+  async enableMfa(): Promise<{
+    secret: string;
+    qrCode: string;
+    message: string;
+  }> {
     try {
       const response = await httpRequest.post("/admin/mfa/enable");
       return response;
@@ -346,7 +360,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Search users failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to search users");
+      throw new Error(
+        error.response?.data?.message || "Failed to search users"
+      );
     }
   }
 
@@ -359,7 +375,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Get user details failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get user details");
+      throw new Error(
+        error.response?.data?.message || "Failed to get user details"
+      );
     }
   }
 
@@ -368,7 +386,10 @@ class AdminService {
    */
   async updateUser(userId: string, updates: Partial<User>): Promise<User> {
     try {
-      const response = await httpRequest.patch<User>(`/admin/users/${userId}`, updates);
+      const response = await httpRequest.patch<User>(
+        `/admin/users/${userId}`,
+        updates
+      );
       return response;
     } catch (error: any) {
       console.error("Update user failed:", error);
@@ -381,7 +402,10 @@ class AdminService {
    */
   async banUser(data: BanUserDto): Promise<{ message: string }> {
     try {
-      const response = await httpRequest.post<{ message: string }>("/admin/users/ban", data);
+      const response = await httpRequest.post<{ message: string }>(
+        "/admin/users/ban",
+        data
+      );
       return response;
     } catch (error: any) {
       console.error("Ban user failed:", error);
@@ -394,7 +418,10 @@ class AdminService {
    */
   async unbanUser(data: UnbanUserDto): Promise<{ message: string }> {
     try {
-      const response = await httpRequest.post<{ message: string }>("/admin/users/unban", data);
+      const response = await httpRequest.post<{ message: string }>(
+        "/admin/users/unban",
+        data
+      );
       return response;
     } catch (error: any) {
       console.error("Unban user failed:", error);
@@ -434,9 +461,10 @@ class AdminService {
     verifications: Verification[];
   }> {
     try {
-      const response = await httpRequest.get<{ user: User; verifications: Verification[] }>(
-        `/admin/verifications/user/${userId}`
-      );
+      const response = await httpRequest.get<{
+        user: User;
+        verifications: Verification[];
+      }>(`/admin/verifications/user/${userId}`);
       return response;
     } catch (error: any) {
       console.error("Get verification details failed:", error);
@@ -449,7 +477,9 @@ class AdminService {
   /**
    * Approve a verification
    */
-  async approveVerification(data: ApproveVerificationDto): Promise<{ message: string }> {
+  async approveVerification(
+    data: ApproveVerificationDto
+  ): Promise<{ message: string }> {
     try {
       const response = await httpRequest.post<{ message: string }>(
         "/admin/verifications/approve",
@@ -458,14 +488,18 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Approve verification failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to approve verification");
+      throw new Error(
+        error.response?.data?.message || "Failed to approve verification"
+      );
     }
   }
 
   /**
    * Reject a verification
    */
-  async rejectVerification(data: RejectVerificationDto): Promise<{ message: string }> {
+  async rejectVerification(
+    data: RejectVerificationDto
+  ): Promise<{ message: string }> {
     try {
       const response = await httpRequest.post<{ message: string }>(
         "/admin/verifications/reject",
@@ -474,7 +508,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Reject verification failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to reject verification");
+      throw new Error(
+        error.response?.data?.message || "Failed to reject verification"
+      );
     }
   }
 
@@ -489,13 +525,18 @@ class AdminService {
     status?: string;
   }): Promise<PaginatedDisputes> {
     try {
-      const response = await httpRequest.get<PaginatedDisputes>("/admin/disputes", {
-        params,
-      });
+      const response = await httpRequest.get<PaginatedDisputes>(
+        "/admin/disputes",
+        {
+          params,
+        }
+      );
       return response;
     } catch (error: any) {
       console.error("Get disputes failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get disputes");
+      throw new Error(
+        error.response?.data?.message || "Failed to get disputes"
+      );
     }
   }
 
@@ -504,11 +545,15 @@ class AdminService {
    */
   async getDisputeDetails(disputeId: string): Promise<Dispute> {
     try {
-      const response = await httpRequest.get<Dispute>(`/admin/disputes/${disputeId}`);
+      const response = await httpRequest.get<Dispute>(
+        `/admin/disputes/${disputeId}`
+      );
       return response;
     } catch (error: any) {
       console.error("Get dispute details failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get dispute details");
+      throw new Error(
+        error.response?.data?.message || "Failed to get dispute details"
+      );
     }
   }
 
@@ -528,7 +573,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Update dispute status failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to update dispute status");
+      throw new Error(
+        error.response?.data?.message || "Failed to update dispute status"
+      );
     }
   }
 
@@ -544,7 +591,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Resolve dispute failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to resolve dispute");
+      throw new Error(
+        error.response?.data?.message || "Failed to resolve dispute"
+      );
     }
   }
 
@@ -555,11 +604,15 @@ class AdminService {
    */
   async getEscrowDetails(poolId: string): Promise<EscrowDetails> {
     try {
-      const response = await httpRequest.get<EscrowDetails>(`/admin/escrow/${poolId}`);
+      const response = await httpRequest.get<EscrowDetails>(
+        `/admin/escrow/${poolId}`
+      );
       return response;
     } catch (error: any) {
       console.error("Get escrow details failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get escrow details");
+      throw new Error(
+        error.response?.data?.message || "Failed to get escrow details"
+      );
     }
   }
 
@@ -575,7 +628,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Manual release failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to release escrow");
+      throw new Error(
+        error.response?.data?.message || "Failed to release escrow"
+      );
     }
   }
 
@@ -591,7 +646,83 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Manual refund failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to process refund");
+      throw new Error(
+        error.response?.data?.message || "Failed to process refund"
+      );
+    }
+  }
+
+  // ==================== METRICS ====================
+
+  /**
+   * Get revenue metrics for charts
+   */
+  async getRevenueMetrics(
+    period: string = "week"
+  ): Promise<Array<{ name: string; date: string; revenue: number }>> {
+    try {
+      const response = await httpRequest.get<
+        Array<{ name: string; date: string; revenue: number }>
+      >(`/admin/metrics/revenue?period=${period}`);
+      return response;
+    } catch (error: any) {
+      console.error("Get revenue metrics failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to get revenue metrics"
+      );
+    }
+  }
+
+  /**
+   * Get user growth metrics for charts
+   */
+  async getUserGrowthMetrics(
+    period: string = "month"
+  ): Promise<
+    Array<{
+      name: string;
+      month: string;
+      users: number;
+      vendors: number;
+      buyers: number;
+    }>
+  > {
+    try {
+      const response = await httpRequest.get<
+        Array<{
+          name: string;
+          month: string;
+          users: number;
+          vendors: number;
+          buyers: number;
+        }>
+      >(`/admin/metrics/user-growth?period=${period}`);
+      return response;
+    } catch (error: any) {
+      console.error("Get user growth metrics failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to get user growth metrics"
+      );
+    }
+  }
+
+  /**
+   * Get pool distribution metrics for charts
+   */
+  async getPoolDistributionMetrics(): Promise<
+    Array<{ name: string; value: number; color: string }>
+  > {
+    try {
+      const response = await httpRequest.get<
+        Array<{ name: string; value: number; color: string }>
+      >("/admin/metrics/pool-distribution");
+      return response;
+    } catch (error: any) {
+      console.error("Get pool distribution metrics failed:", error);
+      throw new Error(
+        error.response?.data?.message ||
+          "Failed to get pool distribution metrics"
+      );
     }
   }
 
@@ -602,31 +733,39 @@ class AdminService {
    */
   async getDashboardStats(): Promise<AdminDashboard> {
     try {
-      const response = await httpRequest.get<AdminDashboard>("/admin/dashboard");
+      const response = await httpRequest.get<AdminDashboard>(
+        "/admin/dashboard"
+      );
       return response;
     } catch (error: any) {
       console.error("Get dashboard stats failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get dashboard stats");
+      throw new Error(
+        error.response?.data?.message || "Failed to get dashboard stats"
+      );
     }
   }
 
   /**
    * Get admin dashboard statistics with recent activity
    */
-  async getDashboardWithActivity(): Promise<AdminDashboard & { recentActivity: AdminAuditLog[] }> {
+  async getDashboardWithActivity(): Promise<
+    AdminDashboard & { recentActivity: AdminAuditLog[] }
+  > {
     try {
       const [dashboard, auditLogs] = await Promise.all([
         this.getDashboardStats(),
-        this.getAuditLogs({ page: 1, limit: 10 })
+        this.getAuditLogs({ page: 1, limit: 10 }),
       ]);
 
       return {
         ...dashboard,
-        recentActivity: auditLogs.logs
+        recentActivity: auditLogs.logs,
       };
     } catch (error: any) {
       console.error("Get dashboard with activity failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get dashboard with activity");
+      throw new Error(
+        error.response?.data?.message || "Failed to get dashboard with activity"
+      );
     }
   }
 
@@ -656,7 +795,9 @@ class AdminService {
       return response;
     } catch (error: any) {
       console.error("Get audit logs failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get audit logs");
+      throw new Error(
+        error.response?.data?.message || "Failed to get audit logs"
+      );
     }
   }
 
@@ -664,20 +805,22 @@ class AdminService {
    * Get system health status
    */
   async getSystemHealth(): Promise<{
-    status: 'healthy' | 'degraded' | 'unhealthy';
+    status: "healthy" | "degraded" | "unhealthy";
     services: Record<string, { status: string; lastCheck: string }>;
     uptime: number;
   }> {
     try {
       const response = await httpRequest.get<{
-        status: 'healthy' | 'degraded' | 'unhealthy';
+        status: "healthy" | "degraded" | "unhealthy";
         services: Record<string, { status: string; lastCheck: string }>;
         uptime: number;
       }>("/admin/health");
       return response;
     } catch (error: any) {
       console.error("Get system health failed:", error);
-      throw new Error(error.response?.data?.message || "Failed to get system health");
+      throw new Error(
+        error.response?.data?.message || "Failed to get system health"
+      );
     }
   }
 }

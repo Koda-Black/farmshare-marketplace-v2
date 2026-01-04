@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -9,50 +9,72 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CreditCard, Truck, MapPin, Info, CheckCircle, AlertCircle } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
-import { enhancedPaymentService, PaymentMethod, InitPaymentDto } from "@/lib/enhanced-payment.service"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  CreditCard,
+  Truck,
+  MapPin,
+  Info,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  enhancedPaymentService,
+  PaymentMethod,
+  InitPaymentDto,
+} from "@/lib/enhanced-payment.service";
+import { useToast } from "@/hooks/use-toast";
 
 interface EnhancedCheckoutModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   pool: {
-    id: string | string[]
-    product_name: string
-    price_per_slot: number
-    allow_home_delivery: boolean
-    home_delivery_cost?: number
-    pickup_location: string
-  }
-  slots?: number
+    id: string | string[];
+    product_name: string;
+    price_per_slot: number;
+    allow_home_delivery: boolean;
+    home_delivery_cost?: number;
+    pickup_location: string;
+  };
+  slots?: number;
 }
 
-export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: EnhancedCheckoutModalProps) {
-  const router = useRouter()
-  const { toast } = useToast()
-  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup")
-  const [deliveryAddress, setDeliveryAddress] = useState("")
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('PAYSTACK')
-  const [selectedSlots, setSelectedSlots] = useState(slots)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentStep, setPaymentStep] = useState<'details' | 'payment'>('details')
-  const [paymentData, setPaymentData] = useState<any>(null)
+export function EnhancedCheckoutModal({
+  open,
+  onOpenChange,
+  pool,
+  slots = 1,
+}: EnhancedCheckoutModalProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">(
+    "pickup"
+  );
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("PAYSTACK");
+  const [selectedSlots, setSelectedSlots] = useState(slots);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"details" | "payment">(
+    "details"
+  );
+  const [paymentData, setPaymentData] = useState<any>(null);
 
-  const slotPrice = pool.price_per_slot
-  const deliveryCost = deliveryMethod === "delivery" ? pool.home_delivery_cost || 0 : 0
-  const subtotal = slotPrice * selectedSlots
-  const platformFee = subtotal * 0.02 // 2% platform fee for buyers
-  const total = subtotal + deliveryCost + platformFee
-  const maxSlots = 10 // Maximum slots a user can purchase at once
+  const slotPrice = pool.price_per_slot;
+  const deliveryCost =
+    deliveryMethod === "delivery" ? pool.home_delivery_cost || 0 : 0;
+  const subtotal = slotPrice * selectedSlots;
+  const platformFee = subtotal * 0.02; // 2% platform fee for buyers
+  const total = subtotal + deliveryCost + platformFee;
+  const maxSlots = 10; // Maximum slots a user can purchase at once
 
   const handleCheckout = async () => {
     // Validate required fields
@@ -61,8 +83,8 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
         title: "Delivery Address Required",
         description: "Please enter your delivery address",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (!phoneNumber.trim()) {
@@ -70,15 +92,15 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
         title: "Phone Number Required",
         description: "Please enter your phone number",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsProcessing(true)
+    setIsProcessing(true);
 
     try {
       // Get actual pool ID (convert to UUID if needed)
-      const poolId = Array.isArray(pool.id) ? pool.id[0] : pool.id
+      const poolId = Array.isArray(pool.id) ? pool.id[0] : pool.id;
 
       // Initiate payment with backend
       const paymentRequestData: InitPaymentDto = {
@@ -87,58 +109,67 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
         slots: selectedSlots,
         waybillWithin: deliveryMethod === "pickup",
         waybillOutside: deliveryMethod === "delivery",
-      }
+      };
 
-      const response = await enhancedPaymentService.initiatePayment(paymentRequestData)
+      const response = await enhancedPaymentService.initiatePayment(
+        paymentRequestData
+      );
 
       // Handle the response structure from backend
       if (response && (response.url || response.authorization_url)) {
         // Backend returns direct payment object
-        const paymentUrl = response.url || response.authorization_url
+        const paymentUrl = response.url || response.authorization_url;
         const paymentInfo = {
           ...response,
           paymentUrl: paymentUrl,
           reference: response.reference,
           sessionId: response.sessionId,
-          pendingId: response.pendingId
-        }
+          pendingId: response.pendingId,
+        };
 
-        setPaymentData(paymentInfo)
-        setPaymentStep('payment')
+        setPaymentData(paymentInfo);
+        setPaymentStep("payment");
+
+        // Store pool ID in localStorage for success page to use
+        const poolId = Array.isArray(pool.id) ? pool.id[0] : pool.id;
+        localStorage.setItem("lastPurchasedPoolId", poolId);
 
         // Handle different payment methods
-        if (paymentMethod === 'STRIPE' && paymentUrl) {
+        if (paymentMethod === "STRIPE" && paymentUrl) {
           // Redirect to Stripe checkout
-          window.location.href = paymentUrl
-        } else if (paymentMethod === 'PAYSTACK' && paymentUrl) {
+          window.location.href = paymentUrl;
+        } else if (paymentMethod === "PAYSTACK" && paymentUrl) {
           // Redirect to Paystack checkout
-          window.location.href = paymentUrl
+          window.location.href = paymentUrl;
         }
       } else if (response && response.success && response.data) {
         // Handle wrapped response format (fallback)
-        setPaymentData(response.data)
-        setPaymentStep('payment')
+        setPaymentData(response.data);
+        setPaymentStep("payment");
 
-        if (paymentMethod === 'STRIPE' && response.data.paymentUrl) {
-          window.location.href = response.data.paymentUrl
-        } else if (paymentMethod === 'PAYSTACK' && response.data.paymentUrl) {
-          window.location.href = response.data.paymentUrl
+        if (paymentMethod === "STRIPE" && response.data.paymentUrl) {
+          window.location.href = response.data.paymentUrl;
+        } else if (paymentMethod === "PAYSTACK" && response.data.paymentUrl) {
+          window.location.href = response.data.paymentUrl;
         }
       } else {
-        console.error('Unexpected response structure:', response)
-        throw new Error(response?.message || 'Payment initiation failed - invalid response')
+        console.error("Unexpected response structure:", response);
+        throw new Error(
+          response?.message || "Payment initiation failed - invalid response"
+        );
       }
     } catch (error: any) {
-      console.error("Payment failed:", error)
+      console.error("Payment failed:", error);
       toast({
         title: "Payment Failed",
-        description: error.message || "Failed to initiate payment. Please try again.",
+        description:
+          error.message || "Failed to initiate payment. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsProcessing(false)
+      setIsProcessing(false);
     }
-  }
+  };
 
   const handleStripeElements = async (clientSecret: string) => {
     // This would integrate with Stripe Elements for a more seamless experience
@@ -146,49 +177,57 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
     toast({
       title: "Stripe Payment",
       description: "Redirecting to secure payment page...",
-    })
-  }
+    });
+  };
 
   const handleBackToDetails = () => {
-    setPaymentStep('details')
-    setPaymentData(null)
-  }
+    setPaymentStep("details");
+    setPaymentData(null);
+  };
 
   const resetModal = () => {
-    setPaymentStep('details')
-    setPaymentData(null)
-    setIsProcessing(false)
-  }
+    setPaymentStep("details");
+    setPaymentData(null);
+    setIsProcessing(false);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
+    <Dialog
+      open={open}
+      onOpenChange={(newOpen) => {
         if (!newOpen) {
-          resetModal()
+          resetModal();
         }
-        onOpenChange(newOpen)
-      }}>
+        onOpenChange(newOpen);
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {paymentStep === 'details' ? 'Complete Your Purchase' : 'Complete Payment'}
+            {paymentStep === "details"
+              ? "Complete Your Purchase"
+              : "Complete Payment"}
           </DialogTitle>
           <DialogDescription>
-            {paymentStep === 'details'
-              ? 'Review your order and choose delivery method'
-              : `Complete your ${paymentMethod} payment securely`
-            }
+            {paymentStep === "details"
+              ? "Review your order and choose delivery method"
+              : `Complete your ${paymentMethod} payment securely`}
           </DialogDescription>
         </DialogHeader>
 
-        {paymentStep === 'details' ? (
+        {paymentStep === "details" ? (
           <div className="space-y-6">
             {/* Order Summary */}
             <div className="space-y-3">
               <h3 className="font-semibold">Order Summary</h3>
               <div className="p-4 bg-muted rounded-lg space-y-4">
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{pool.product_name}</span>
-                  <span className="text-sm">₦{slotPrice.toLocaleString()} per slot</span>
+                  <span className="text-sm font-medium">
+                    {pool.product_name}
+                  </span>
+                  <span className="text-sm">
+                    ₦{slotPrice.toLocaleString()} per slot
+                  </span>
                 </div>
 
                 {/* Slot Selection */}
@@ -199,7 +238,9 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedSlots(Math.max(1, selectedSlots - 1))}
+                      onClick={() =>
+                        setSelectedSlots(Math.max(1, selectedSlots - 1))
+                      }
                       disabled={selectedSlots <= 1}
                     >
                       -
@@ -210,25 +251,40 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                       min="1"
                       max={maxSlots}
                       value={selectedSlots}
-                      onChange={(e) => setSelectedSlots(Math.min(maxSlots, Math.max(1, parseInt(e.target.value) || 1)))}
+                      onChange={(e) =>
+                        setSelectedSlots(
+                          Math.min(
+                            maxSlots,
+                            Math.max(1, parseInt(e.target.value) || 1)
+                          )
+                        )
+                      }
                       className="w-20 text-center"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setSelectedSlots(Math.min(maxSlots, selectedSlots + 1))}
+                      onClick={() =>
+                        setSelectedSlots(Math.min(maxSlots, selectedSlots + 1))
+                      }
                       disabled={selectedSlots >= maxSlots}
                     >
                       +
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Maximum {maxSlots} slots per order</p>
+                  <p className="text-xs text-muted-foreground">
+                    Maximum {maxSlots} slots per order
+                  </p>
                 </div>
 
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>{selectedSlots} {selectedSlots === 1 ? 'slot' : 'slots'}</span>
-                  <span className="text-sm font-medium">₦{subtotal.toLocaleString()}</span>
+                  <span>
+                    {selectedSlots} {selectedSlots === 1 ? "slot" : "slots"}
+                  </span>
+                  <span className="text-sm font-medium">
+                    ₦{subtotal.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -238,7 +294,10 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
             {/* Delivery Method */}
             <div className="space-y-3">
               <h3 className="font-semibold">Delivery Method</h3>
-              <RadioGroup value={deliveryMethod} onValueChange={(value: any) => setDeliveryMethod(value)}>
+              <RadioGroup
+                value={deliveryMethod}
+                onValueChange={(value: any) => setDeliveryMethod(value)}
+              >
                 <div className="flex items-start space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50">
                   <RadioGroupItem value="pickup" id="pickup" />
                   <div className="flex-1">
@@ -247,7 +306,9 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                         <MapPin className="h-4 w-4" />
                         Pickup
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{pool.pickup_location}</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {pool.pickup_location}
+                      </p>
                       <p className="text-sm font-medium mt-1">Free</p>
                     </Label>
                   </div>
@@ -262,8 +323,12 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                           <Truck className="h-4 w-4" />
                           Home Delivery
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">Delivered to your address</p>
-                        <p className="text-sm font-medium mt-1">+₦{pool.home_delivery_cost?.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Delivered to your address
+                        </p>
+                        <p className="text-sm font-medium mt-1">
+                          +₦{pool.home_delivery_cost?.toLocaleString()}
+                        </p>
                       </Label>
                     </div>
                   </div>
@@ -297,13 +362,18 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
               />
-              <p className="text-xs text-muted-foreground">For delivery coordination and updates</p>
+              <p className="text-xs text-muted-foreground">
+                For delivery coordination and updates
+              </p>
             </div>
 
             {/* Payment Method */}
             <div className="space-y-3">
               <Label className="text-base font-semibold">Payment Method</Label>
-              <RadioGroup value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
+              <RadioGroup
+                value={paymentMethod}
+                onValueChange={(value: any) => setPaymentMethod(value)}
+              >
                 <div className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-muted/50">
                   <RadioGroupItem value="PAYSTACK" id="paystack" />
                   <div className="flex-1">
@@ -312,7 +382,9 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                         <CreditCard className="h-4 w-4" />
                         Paystack
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">Pay with card, bank transfer, or USSD</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay with card, bank transfer, or USSD
+                      </p>
                     </Label>
                   </div>
                 </div>
@@ -325,7 +397,9 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                         <CreditCard className="h-4 w-4" />
                         Stripe
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">Pay with international credit/debit cards</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Pay with international credit/debit cards
+                      </p>
                     </Label>
                   </div>
                 </div>
@@ -349,13 +423,17 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Platform fee (2%)</span>
+                  <span className="text-muted-foreground">
+                    Platform fee (2%)
+                  </span>
                   <span>₦{platformFee.toLocaleString()}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-base font-semibold">
                   <span>Total</span>
-                  <span className="text-primary">₦{total.toLocaleString()}</span>
+                  <span className="text-primary">
+                    ₦{total.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -364,8 +442,10 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                Your payment is held securely by {paymentMethod === 'PAYSTACK' ? 'Paystack' : 'Stripe'} until the pool fills and products are delivered. Full refund if
-                the pool doesn't fill or vendor fails to deliver.
+                Your payment is held securely by{" "}
+                {paymentMethod === "PAYSTACK" ? "Paystack" : "Stripe"} until the
+                pool fills and products are delivered. Full refund if the pool
+                doesn't fill or vendor fails to deliver.
               </AlertDescription>
             </Alert>
           </div>
@@ -384,23 +464,25 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
               </div>
               <div>
                 <h3 className="text-lg font-semibold">
-                  {isProcessing ? 'Processing Payment...' : 'Payment Initiated'}
+                  {isProcessing ? "Processing Payment..." : "Payment Initiated"}
                 </h3>
                 <p className="text-muted-foreground mt-1">
                   {isProcessing
                     ? `Please wait while we set up your ${paymentMethod} payment...`
-                    : 'You will be redirected to complete your payment securely.'
-                  }
+                    : "You will be redirected to complete your payment securely."}
                 </p>
               </div>
 
               {paymentData && (
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    {paymentMethod === 'STRIPE' ? 'Stripe' : 'Paystack'} Reference:
+                    {paymentMethod === "STRIPE" ? "Stripe" : "Paystack"}{" "}
+                    Reference:
                   </p>
                   <p className="font-mono text-sm">
-                    {paymentData.reference || paymentData.sessionId || 'Processing...'}
+                    {paymentData.reference ||
+                      paymentData.sessionId ||
+                      "Processing..."}
                   </p>
                 </div>
               )}
@@ -410,23 +492,30 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 {isProcessing
-                  ? 'Do not close this window while we process your payment.'
-                  : 'You will be redirected to a secure payment page. If the redirect does not work, please check your pop-up blocker settings.'
-                }
+                  ? "Do not close this window while we process your payment."
+                  : "You will be redirected to a secure payment page. If the redirect does not work, please check your pop-up blocker settings."}
               </AlertDescription>
             </Alert>
           </div>
         )}
 
         <DialogFooter>
-          {paymentStep === 'details' ? (
+          {paymentStep === "details" ? (
             <>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessing}>
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isProcessing}
+              >
                 Cancel
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isProcessing || !phoneNumber || (deliveryMethod === "delivery" && !deliveryAddress)}
+                disabled={
+                  isProcessing ||
+                  !phoneNumber ||
+                  (deliveryMethod === "delivery" && !deliveryAddress)
+                }
                 className="bg-accent hover:bg-accent/90 text-accent-foreground"
               >
                 {isProcessing ? (
@@ -454,5 +543,5 @@ export function EnhancedCheckoutModal({ open, onOpenChange, pool, slots = 1 }: E
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

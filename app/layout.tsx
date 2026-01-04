@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "@/components/ui/toaster";
 import { Suspense } from "react";
 import { NotificationInitializer } from "@/components/notification-initializer";
+import { AIChatSupport } from "@/components/support/ai-chat-support";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -102,6 +103,7 @@ export default function RootLayout({
               <Footer />
             </div>
             <Toaster />
+            <AIChatSupport />
             <Analytics />
           </Suspense>
         </ThemeProvider>
