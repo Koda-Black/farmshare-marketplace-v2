@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,6 +11,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   Table,
@@ -24,43 +26,76 @@ import Link from "next/link";
 import { useAdminDashboard } from "@/hooks/use-admin";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { useAdminAuth } from "@/hooks/use-admin";
+import { adminService } from "@/lib/admin.service";
 import {
   RevenueChart,
   UserGrowthChart,
   PoolDistributionChart,
 } from "@/components/admin/charts";
+import { AdminBreadcrumbs } from "@/components/admin/admin-breadcrumbs";
+import { BusinessMetrics } from "@/components/admin/business-metrics";
 
 export default function AdminDashboardPage() {
   const { admin, isAdminAuthenticated } = useAdminAuth();
   const { adminDashboard, loading, loadDashboard } = useAdminDashboard();
 
-  // Mock data for charts
-  const revenueData = [
-    { name: "Mon", revenue: 45000 },
-    { name: "Tue", revenue: 52000 },
-    { name: "Wed", revenue: 48000 },
-    { name: "Thu", revenue: 61000 },
-    { name: "Fri", revenue: 55000 },
-    { name: "Sat", revenue: 67000 },
-    { name: "Sun", revenue: 72000 },
-  ];
+  // Real metrics data from API
+  const [revenueData, setRevenueData] = useState<
+    Array<{ name: string; revenue: number }>
+  >([]);
+  const [userGrowthData, setUserGrowthData] = useState<
+    Array<{ name: string; users: number; vendors: number; buyers: number }>
+  >([]);
+  const [poolDistributionData, setPoolDistributionData] = useState<
+    Array<{ name: string; value: number; color: string }>
+  >([]);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-  const userGrowthData = [
-    { name: "Jan", users: 120, vendors: 15, buyers: 105 },
-    { name: "Feb", users: 145, vendors: 18, buyers: 127 },
-    { name: "Mar", users: 178, vendors: 22, buyers: 156 },
-    { name: "Apr", users: 195, vendors: 26, buyers: 169 },
-    { name: "May", users: 234, vendors: 31, buyers: 203 },
-    { name: "Jun", users: 267, vendors: 36, buyers: 231 },
-  ];
+  // Load metrics on mount
+  useEffect(() => {
+    const loadMetrics = async () => {
+      if (!isAdminAuthenticated) return;
 
-  const poolDistributionData = [
-    { name: "Vegetables", value: 45, color: "hsl(var(--chart-1))" },
-    { name: "Fruits", value: 25, color: "hsl(var(--chart-2))" },
-    { name: "Grains", value: 18, color: "hsl(var(--chart-3))" },
-    { name: "Dairy", value: 8, color: "hsl(var(--chart-4))" },
-    { name: "Other", value: 4, color: "hsl(var(--chart-5))" },
-  ];
+      setMetricsLoading(true);
+      try {
+        const [revenue, userGrowth, poolDistribution] = await Promise.all([
+          adminService.getRevenueMetrics("week"),
+          adminService.getUserGrowthMetrics("month"),
+          adminService.getPoolDistributionMetrics(),
+        ]);
+
+        setRevenueData(revenue);
+        setUserGrowthData(userGrowth);
+        setPoolDistributionData(poolDistribution);
+      } catch (error) {
+        console.error("Failed to load metrics:", error);
+        // Fallback to empty data
+      } finally {
+        setMetricsLoading(false);
+      }
+    };
+
+    loadMetrics();
+  }, [isAdminAuthenticated]);
+
+  const refreshMetrics = async () => {
+    setMetricsLoading(true);
+    try {
+      const [revenue, userGrowth, poolDistribution] = await Promise.all([
+        adminService.getRevenueMetrics("week"),
+        adminService.getUserGrowthMetrics("month"),
+        adminService.getPoolDistributionMetrics(),
+      ]);
+
+      setRevenueData(revenue);
+      setUserGrowthData(userGrowth);
+      setPoolDistributionData(poolDistribution);
+    } catch (error) {
+      console.error("Failed to refresh metrics:", error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
 
   // Check if admin is authenticated
   if (!isAdminAuthenticated) {
@@ -101,97 +136,170 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <AdminSidebar />
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 space-y-8 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
+        <main className="flex-1 space-y-6 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
+          {/* Breadcrumbs */}
+          <AdminBreadcrumbs items={[{ label: "Dashboard" }]} />
+
           {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Monitor and manage the FarmShare platform
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Welcome back, {admin?.name}
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-muted-foreground mt-1">
+                Welcome back,{" "}
+                <span className="text-foreground font-medium">
+                  {admin?.name}
+                </span>
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshMetrics}
+              disabled={metricsLoading}
+              className="w-fit"
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${
+                  metricsLoading ? "animate-spin" : ""
+                }`}
+              />
+              Refresh Data
+            </Button>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <Card>
+          {/* Business Metrics - MRR, ARR, Growth, Retention */}
+          <BusinessMetrics
+            escrow={adminDashboard.escrow || { totalHeld: 0, totalReleased: 0 }}
+            users={
+              adminDashboard.users || {
+                total: 0,
+                newThisWeek: 0,
+                vendors: 0,
+                buyers: 0,
+              }
+            }
+            pools={
+              adminDashboard.pools || {
+                total: 0,
+                active: 0,
+                completed: 0,
+                completedThisWeek: 0,
+              }
+            }
+          />
+
+          {/* Platform Stats Grid */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Users
                 </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-blue-500" />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {adminDashboard.users?.total?.toLocaleString() || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {adminDashboard.users?.vendors || 0} vendors,{" "}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {adminDashboard.users?.vendors || 0} vendors •{" "}
                   {adminDashboard.users?.buyers || 0} buyers
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Approved Vendors
+                </CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {adminDashboard.users?.verifiedVendors || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  of {adminDashboard.users?.vendors || 0} total vendors
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Pending Verifications
                 </CardTitle>
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <div className="h-8 w-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {adminDashboard.verifications?.pending || 0}
                 </div>
-                <Button variant="link" className="h-auto p-0 text-xs" asChild>
-                  <Link href="/admin/verifications">Review now</Link>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-xs mt-1 text-primary"
+                  asChild
+                >
+                  <Link href="/admin/verifications">Review now →</Link>
                 </Button>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Active Pools
                 </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Package className="h-4 w-4 text-blue-600" />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {adminDashboard.pools?.active || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Across all vendors
+                <p className="text-xs text-muted-foreground mt-1">
+                  {adminDashboard.pools?.total || 0} total pools
                 </p>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Platform Revenue
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Escrow Held
                 </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-purple-600" />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   ₦{(adminDashboard.escrow?.totalHeld || 0).toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Total platform earnings
+                <p className="text-xs text-muted-foreground mt-1">
+                  ₦
+                  {(adminDashboard.escrow?.totalReleased || 0).toLocaleString()}{" "}
+                  released
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
+          <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -240,63 +348,109 @@ export default function AdminDashboardPage() {
           </Card>
 
           {/* Charts Section */}
+          <div className="pt-2">
+            <h2 className="text-xl font-semibold mb-4">Analytics Overview</h2>
+          </div>
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Revenue</CardTitle>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  Weekly Revenue
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <RevenueChart data={revenueData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[280px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : revenueData.length > 0 ? (
+                  <RevenueChart data={revenueData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+                    No revenue data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  User Growth
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <UserGrowthChart data={userGrowthData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[280px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : userGrowthData.length > 0 ? (
+                  <UserGrowthChart data={userGrowthData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                    No user growth data available
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Pool Distribution</CardTitle>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  Pool Distribution
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <PoolDistributionChart data={poolDistributionData} />
+                {metricsLoading ? (
+                  <div className="flex items-center justify-center h-[280px]">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : poolDistributionData.length > 0 ? (
+                  <PoolDistributionChart data={poolDistributionData} />
+                ) : (
+                  <div className="flex items-center justify-center h-[280px] text-muted-foreground">
+                    No pool distribution data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium">
+                  Recent Activity
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Target</TableHead>
-                      <TableHead>Time</TableHead>
+                      <TableHead className="text-xs">Type</TableHead>
+                      <TableHead className="text-xs">Action</TableHead>
+                      <TableHead className="text-xs">Target</TableHead>
+                      <TableHead className="text-xs">Time</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {adminDashboard.recentActivity?.map((activity) => (
                       <TableRow key={activity.id}>
-                        <TableCell>
-                          <Badge variant="secondary" className="capitalize">
+                        <TableCell className="py-2">
+                          <Badge
+                            variant="secondary"
+                            className="capitalize text-xs"
+                          >
                             {activity.targetType}
                           </Badge>
                         </TableCell>
-                        <TableCell>{activity.action}</TableCell>
-                        <TableCell className="font-mono text-xs">
+                        <TableCell className="py-2 text-sm">
+                          {activity.action}
+                        </TableCell>
+                        <TableCell className="py-2 font-mono text-xs max-w-[100px] truncate">
                           {activity.targetId}
                         </TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell className="py-2 text-xs text-muted-foreground">
                           {new Date(activity.createdAt).toLocaleString()}
                         </TableCell>
                       </TableRow>
@@ -355,29 +509,29 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">User Growth</span>
+                  <span className="text-sm">User Growth (This Week)</span>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-success" />
                     <span className="text-sm font-medium text-success">
-                      +12.5%
+                      +{adminDashboard.users?.newThisWeek || 0} new
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Pool Creation Rate</span>
+                  <span className="text-sm">Verification Rate</span>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-success" />
                     <span className="text-sm font-medium text-success">
-                      +18.2%
+                      {adminDashboard.metrics?.verificationCompletionRate || 0}%
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Transaction Volume</span>
+                  <span className="text-sm">Pool Completion</span>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-success" />
                     <span className="text-sm font-medium text-success">
-                      +31.5%
+                      {adminDashboard.pools?.completedThisWeek || 0} this week
                     </span>
                   </div>
                 </div>

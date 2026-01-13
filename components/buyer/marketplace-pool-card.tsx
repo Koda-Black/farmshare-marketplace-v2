@@ -1,14 +1,8 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   CheckCircle,
   Clock,
@@ -16,6 +10,7 @@ import {
   Users,
   ArrowRight,
   Flame,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -35,6 +30,7 @@ interface MarketplacePool {
   delivery_deadline: string;
   status: string;
   category: string;
+  joins_per_day?: number;
 }
 
 interface MarketplacePoolCardProps {
@@ -48,144 +44,150 @@ export function MarketplacePoolCard({ pool }: MarketplacePoolCardProps) {
     (new Date(pool.delivery_deadline).getTime() - Date.now()) /
       (1000 * 60 * 60 * 24)
   );
-  const isHot = fillPercentage > 70;
+  const isHot =
+    fillPercentage > 70 || (pool.joins_per_day && pool.joins_per_day > 1.5);
   const isAlmostFull = slotsRemaining <= 3;
 
   return (
-    <Card className="card-premium overflow-hidden group border-border/50">
-      {/* Product Image */}
-      <div className="relative h-52 overflow-hidden bg-muted">
+    <Card className="overflow-hidden group border-border/50 rounded-2xl hover:shadow-xl transition-all duration-300">
+      {/* Product Image - Full Width Top */}
+      <div className="relative h-48 overflow-hidden">
         <Image
           src={pool.product_image || "/placeholder.svg"}
           alt={pool.product_name}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-        {/* Badges */}
+        {/* Top Badges */}
         <div className="absolute top-3 left-3 flex gap-2">
-          {isHot && (
-            <Badge className="bg-accent text-white border-0 shadow-lg shadow-accent/25">
-              <Flame className="h-3 w-3 mr-1" />
-              Hot
-            </Badge>
-          )}
           {pool.vendor_verified && (
-            <Badge className="bg-primary text-primary-foreground border-0">
+            <Badge className="bg-blue-500 text-white border-0 shadow-lg">
               <CheckCircle className="h-3 w-3 mr-1" />
               Verified
             </Badge>
           )}
+          {isHot && (
+            <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 shadow-lg">
+              <Flame className="h-3 w-3 mr-1" />
+              Hot
+            </Badge>
+          )}
         </div>
 
+        {/* Slots Badge - Top Right */}
         <div className="absolute top-3 right-3">
           <Badge
-            className={`backdrop-blur-md border-0 shadow-lg ${
+            className={`backdrop-blur-md border-0 shadow-lg font-semibold ${
               isAlmostFull
                 ? "bg-red-500/90 text-white"
-                : "bg-background/90 text-foreground"
+                : "bg-white/90 text-gray-800"
             }`}
           >
             {slotsRemaining} slots left
           </Badge>
         </div>
 
-        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+        {/* Category Badge - Bottom Left */}
+        <div className="absolute bottom-3 left-3">
           <Badge
             variant="secondary"
-            className="bg-background/90 backdrop-blur-md"
+            className="bg-white/90 backdrop-blur-md text-gray-700 capitalize"
           >
             {pool.category}
           </Badge>
         </div>
       </div>
 
-      <CardHeader className="pb-3">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground font-medium">
-              {pool.vendor_name}
+      <CardContent className="p-4 space-y-3">
+        {/* Vendor Name */}
+        <p className="text-sm text-muted-foreground font-medium truncate">
+          {pool.vendor_name}
+        </p>
+
+        {/* Product Name */}
+        <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors line-clamp-1">
+          {pool.product_name}
+        </h3>
+
+        {/* Product Description */}
+        <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
+          {pool.product_description ||
+            "Fresh quality produce direct from the farm"}
+        </p>
+
+        {/* Progress Bar Section */}
+        <div className="space-y-2 pt-1">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground font-medium">
+              Pool Progress
+            </span>
+            <span className="font-bold text-primary">
+              {Math.round(fillPercentage)}%
             </span>
           </div>
-          <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
-            {pool.product_name}
-          </h3>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {pool.product_description}
-          </p>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Pool Progress</span>
-            <span className="font-semibold">{Math.round(fillPercentage)}%</span>
-          </div>
-          <div className="relative h-2.5 bg-muted rounded-full overflow-hidden">
+          <div className="relative h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
             <div
               className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
                 fillPercentage > 80
-                  ? "bg-gradient-to-r from-accent to-red-500"
-                  : "bg-gradient-to-r from-primary to-accent"
+                  ? "bg-gradient-to-r from-orange-400 to-red-500"
+                  : fillPercentage > 50
+                  ? "bg-gradient-to-r from-green-400 to-emerald-500"
+                  : "bg-gradient-to-r from-blue-400 to-primary"
               }`}
               style={{ width: `${fillPercentage}%` }}
             />
           </div>
         </div>
 
-        {/* Price */}
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold text-primary">
-            ₦{pool.price_per_slot.toLocaleString()}
-          </span>
-          <span className="text-sm text-muted-foreground">per slot</span>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-              <Users className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span>{pool.slots_filled} joined</span>
+        {/* Price and Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          {/* Price */}
+          <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-3">
+            <p className="text-xs text-muted-foreground mb-0.5">Price</p>
+            <p className="text-lg font-bold text-primary">
+              ₦{pool.price_per_slot.toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground">per slot</p>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-lg ${
-                daysUntilDeadline <= 3 ? "bg-red-100" : "bg-muted"
-              }`}
-            >
+
+          {/* Stats */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Users className="h-4 w-4 text-primary" />
+              <span className="font-medium">{pool.slots_filled} joined</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
               <Clock
-                className={`h-3.5 w-3.5 ${
-                  daysUntilDeadline <= 3 ? "text-red-600" : ""
+                className={`h-4 w-4 ${
+                  daysUntilDeadline <= 3
+                    ? "text-red-500"
+                    : "text-muted-foreground"
                 }`}
               />
-            </div>
-            <span
-              className={
-                daysUntilDeadline <= 3 ? "text-red-600 font-medium" : ""
-              }
-            >
-              {daysUntilDeadline}d left
-            </span>
-          </div>
-          {pool.allow_home_delivery && (
-            <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted">
-                <Truck className="h-3.5 w-3.5" />
-              </div>
-              <span>
-                Delivery: +₦{pool.home_delivery_cost?.toLocaleString()}
+              <span
+                className={`font-medium ${
+                  daysUntilDeadline <= 3 ? "text-red-500" : ""
+                }`}
+              >
+                {daysUntilDeadline}d left
               </span>
             </div>
-          )}
+            {pool.allow_home_delivery && (
+              <div className="flex items-center gap-2 text-sm">
+                <Truck className="h-4 w-4 text-accent" />
+                <span className="text-accent font-medium">
+                  +₦{(pool.home_delivery_cost || 0).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
 
-      <CardFooter className="pt-0">
+      <CardFooter className="p-4 pt-0">
         <Button
           asChild
           className="w-full h-11 bg-accent hover:bg-accent/90 text-white rounded-xl font-semibold shadow-lg shadow-accent/20 hover:shadow-xl transition-all duration-300 group/btn"

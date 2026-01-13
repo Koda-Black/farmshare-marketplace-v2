@@ -1,69 +1,56 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Search } from "lucide-react"
-import { CreatePoolModal } from "@/components/vendor/create-pool-modal"
-import { PoolCard } from "@/components/vendor/pool-card"
-import { useStore } from "@/lib/store"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Search, Loader2, Package } from "lucide-react";
+import { CreatePoolModal } from "@/components/vendor/create-pool-modal";
+import { PoolCard } from "@/components/vendor/pool-card";
+import { useStore } from "@/lib/store";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { httpRequest } from "@/lib/httpRequest";
 
 export default function VendorPoolsPage() {
-  const user = useStore((state) => state.user)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards")
+  const user = useStore((state) => state.user);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [vendorPools, setVendorPools] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock pools data
-  const mockPools = [
-    {
-      id: "pool_1",
-      vendor_id: user?.id || "",
-      product_name: "Premium Rice",
-      product_description: "50kg bags of premium quality rice",
-      slots_count: 10,
-      slots_filled: 8,
-      price_total: 500000,
-      price_per_slot: 50000,
-      allow_home_delivery: true,
-      home_delivery_cost: 5000,
-      delivery_deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "active" as const,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "pool_2",
-      vendor_id: user?.id || "",
-      product_name: "Organic Tomatoes",
-      product_description: "Fresh organic tomatoes - 25kg crates",
-      slots_count: 15,
-      slots_filled: 15,
-      price_total: 225000,
-      price_per_slot: 15000,
-      allow_home_delivery: false,
-      delivery_deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "full" as const,
-      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "pool_3",
-      vendor_id: user?.id || "",
-      product_name: "Yellow Maize",
-      product_description: "100kg bags of yellow maize",
-      slots_count: 8,
-      slots_filled: 3,
-      price_total: 320000,
-      price_per_slot: 40000,
-      allow_home_delivery: true,
-      home_delivery_cost: 8000,
-      delivery_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "active" as const,
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]
+  // Fetch vendor's pools from API
+  const fetchVendorPools = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    try {
+      const response = await httpRequest.get(`/pools?vendorId=${user.id}`);
+      const data = response.data || response;
+      setVendorPools(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch vendor pools:", error);
+      setVendorPools([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchVendorPools();
+  }, [fetchVendorPools]);
+
+  // Filter pools based on search query
+  const filteredPools = vendorPools.filter((pool) =>
+    pool.product_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="container px-[30px] py-8">
@@ -72,7 +59,9 @@ export default function VendorPoolsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">My Pools</h1>
-            <p className="text-muted-foreground mt-1">Manage all your buying pools</p>
+            <p className="text-muted-foreground mt-1">
+              Manage all your buying pools
+            </p>
           </div>
           <Button
             size="lg"
@@ -98,10 +87,16 @@ export default function VendorPoolsPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant={viewMode === "cards" ? "default" : "outline"} onClick={() => setViewMode("cards")}>
+                <Button
+                  variant={viewMode === "cards" ? "default" : "outline"}
+                  onClick={() => setViewMode("cards")}
+                >
                   Cards
                 </Button>
-                <Button variant={viewMode === "table" ? "default" : "outline"} onClick={() => setViewMode("table")}>
+                <Button
+                  variant={viewMode === "table" ? "default" : "outline"}
+                  onClick={() => setViewMode("table")}
+                >
                   Table
                 </Button>
               </div>
@@ -110,9 +105,34 @@ export default function VendorPoolsPage() {
         </Card>
 
         {/* Pools Display */}
-        {viewMode === "cards" ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          </div>
+        ) : filteredPools.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery ? "No pools found" : "No pools yet"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery
+                ? "Try adjusting your search query"
+                : "Create your first pool to start selling"}
+            </p>
+            {!searchQuery && (
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-accent hover:bg-accent/90"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Pool
+              </Button>
+            )}
+          </div>
+        ) : viewMode === "cards" ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {mockPools.map((pool) => (
+            {filteredPools.map((pool) => (
               <PoolCard key={pool.id} pool={pool} />
             ))}
           </div>
@@ -134,17 +154,23 @@ export default function VendorPoolsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockPools.map((pool) => (
+                  {filteredPools.map((pool) => (
                     <TableRow key={pool.id}>
-                      <TableCell className="font-medium">{pool.product_name}</TableCell>
+                      <TableCell className="font-medium">
+                        {pool.product_name}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{pool.status}</Badge>
                       </TableCell>
                       <TableCell>
                         {pool.slots_filled}/{pool.slots_count}
                       </TableCell>
-                      <TableCell>₦{pool.price_per_slot.toLocaleString()}</TableCell>
-                      <TableCell>{new Date(pool.delivery_deadline).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        ₦{(pool.price_per_slot || 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(pool.delivery_deadline).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm">
                           View
@@ -159,7 +185,10 @@ export default function VendorPoolsPage() {
         )}
       </div>
 
-      <CreatePoolModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
+      <CreatePoolModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+      />
     </div>
-  )
+  );
 }

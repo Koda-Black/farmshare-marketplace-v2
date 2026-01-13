@@ -1,8 +1,18 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Users, Package, DollarSign, Shield, CheckCircle, Clock, Truck, MapPin } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowRight,
+  Users,
+  Package,
+  DollarSign,
+  Shield,
+  CheckCircle,
+  Clock,
+  Truck,
+  MapPin,
+} from "lucide-react";
+import Link from "next/link";
 
 export default function HowItWorksPage() {
   return (
@@ -12,7 +22,8 @@ export default function HowItWorksPage() {
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">How FarmShare Works</h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            A revolutionary approach to agricultural buying that benefits both farmers and buyers through collective purchasing power.
+            A revolutionary approach to agricultural buying that benefits both
+            farmers and buyers through collective purchasing power.
           </p>
         </div>
 
@@ -21,7 +32,8 @@ export default function HowItWorksPage() {
           <div className="text-center">
             <h2 className="text-3xl font-bold mb-4">The Pool Buying Process</h2>
             <p className="text-muted-foreground">
-              Simple steps to access quality agricultural products at fair prices
+              Simple steps to access quality agricultural products at fair
+              prices
             </p>
           </div>
 
@@ -40,7 +52,8 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="font-semibold mb-2">Browse Pools</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Explore available agricultural products from verified vendors
+                    Explore available agricultural products from verified
+                    vendors
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -69,7 +82,8 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="font-semibold mb-2">Join Pool</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Select the number of slots you want and choose delivery method
+                    Select the number of slots you want and choose delivery
+                    method
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -98,7 +112,8 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="font-semibold mb-2">Pool Fills</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Wait for other buyers to join the pool and reach the target quantity
+                    Wait for other buyers to join the pool and reach the target
+                    quantity
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -127,7 +142,8 @@ export default function HowItWorksPage() {
                   </div>
                   <h3 className="font-semibold mb-2">Delivery</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Receive your products at your chosen location or pickup point
+                    Receive your products at your chosen location or pickup
+                    point
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -161,7 +177,9 @@ export default function HowItWorksPage() {
           <div className="grid md:grid-cols-2 gap-8">
             <Card className="h-full">
               <CardHeader>
-                <CardTitle className="text-xl text-green-600">For Buyers</CardTitle>
+                <CardTitle className="text-xl text-green-600">
+                  For Buyers
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -188,7 +206,8 @@ export default function HowItWorksPage() {
                     <div>
                       <h4 className="font-medium">Collective Power</h4>
                       <p className="text-sm text-muted-foreground">
-                        Join forces with other buyers for better negotiating power
+                        Join forces with other buyers for better negotiating
+                        power
                       </p>
                     </div>
                   </div>
@@ -197,7 +216,8 @@ export default function HowItWorksPage() {
                     <div>
                       <h4 className="font-medium">Quality Assurance</h4>
                       <p className="text-sm text-muted-foreground">
-                        All vendors are verified and products meet quality standards
+                        All vendors are verified and products meet quality
+                        standards
                       </p>
                     </div>
                   </div>
@@ -207,7 +227,9 @@ export default function HowItWorksPage() {
 
             <Card className="h-full">
               <CardHeader>
-                <CardTitle className="text-xl text-blue-600">For Farmers</CardTitle>
+                <CardTitle className="text-xl text-blue-600">
+                  For Farmers
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -225,7 +247,8 @@ export default function HowItWorksPage() {
                     <div>
                       <h4 className="font-medium">Fair Pricing</h4>
                       <p className="text-sm text-muted-foreground">
-                        Set fair prices that reflect the quality and value of your products
+                        Set fair prices that reflect the quality and value of
+                        your products
                       </p>
                     </div>
                   </div>
@@ -234,7 +257,8 @@ export default function HowItWorksPage() {
                     <div>
                       <h4 className="font-medium">Efficient Logistics</h4>
                       <p className="text-sm text-muted-foreground">
-                        Deliver to multiple buyers in a single coordinated effort
+                        Deliver to multiple buyers in a single coordinated
+                        effort
                       </p>
                     </div>
                   </div>
@@ -266,7 +290,8 @@ export default function HowItWorksPage() {
                 </div>
                 <h3 className="font-medium mb-2">Vendor Verification</h3>
                 <p className="text-sm text-muted-foreground">
-                  All vendors undergo thorough business and identity verification
+                  All vendors undergo thorough business and identity
+                  verification
                 </p>
               </div>
               <div className="text-center">
@@ -275,7 +300,8 @@ export default function HowItWorksPage() {
                 </div>
                 <h3 className="font-medium mb-2">Escrow Protection</h3>
                 <p className="text-sm text-muted-foreground">
-                  Payments are secure and only released when delivery is confirmed
+                  Payments are secure and only released when delivery is
+                  confirmed
                 </p>
               </div>
               <div className="text-center">
@@ -303,49 +329,67 @@ export default function HowItWorksPage() {
         {/* FAQ Section */}
         <div className="space-y-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold mb-4">
+              Frequently Asked Questions
+            </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">What happens if a pool doesn't fill?</CardTitle>
+                <CardTitle className="text-lg">
+                  What happens if a pool doesn't fill?
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  If a pool doesn't reach its target quantity by the deadline, all buyers receive a full refund automatically. No money is lost.
+                  If a pool doesn't reach its target quantity by the deadline,
+                  all buyers receive a full refund automatically. No money is
+                  lost.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">How long does delivery take?</CardTitle>
+                <CardTitle className="text-lg">
+                  How long does delivery take?
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Delivery timelines are set by vendors and vary by product type and location. Most deliveries occur within 3-7 days after pool completion.
+                  Delivery timelines are set by vendors and vary by product type
+                  and location. Most deliveries occur within 3-7 days after pool
+                  completion.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Can I cancel my order?</CardTitle>
+                <CardTitle className="text-lg">
+                  Can I cancel my order?
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  You can cancel before the pool fills and receive a full refund. Once a pool is filled and preparation begins, cancellation may not be possible.
+                  You can cancel before the pool fills and receive a full
+                  refund. Once a pool is filled and preparation begins,
+                  cancellation may not be possible.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">How are delivery costs calculated?</CardTitle>
+                <CardTitle className="text-lg">
+                  How are delivery costs calculated?
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Delivery costs are shared among all buyers in the pool and depend on your chosen delivery method and location. Costs are shown upfront before payment.
+                  Delivery costs are shared among all buyers in the pool and
+                  depend on your chosen delivery method and location. Costs are
+                  shown upfront before payment.
                 </p>
               </CardContent>
             </Card>
@@ -357,11 +401,15 @@ export default function HowItWorksPage() {
           <CardContent className="text-center py-8">
             <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
             <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Join thousands of buyers and sellers who are already benefiting from the FarmShare platform.
+              Join thousands of buyers and sellers who are already benefiting
+              from the FarmShare platform.
             </p>
             <div className="flex gap-4 justify-center">
-              <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/marketplace">Browse Pools</Link>
+              <Button
+                asChild
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+              >
+                <Link href="/buyer/marketplace">Browse Pools</Link>
               </Button>
               <Button variant="outline" asChild>
                 <Link href="/vendor/signup">Become a Vendor</Link>
@@ -371,5 +419,5 @@ export default function HowItWorksPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

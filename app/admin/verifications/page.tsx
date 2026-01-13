@@ -1,21 +1,85 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Search, CheckCircle, XCircle, Clock, Eye } from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { VerificationReviewModal } from "@/components/admin/verification-review-modal"
-import { AdminSidebar } from "@/components/admin/admin-sidebar"
-import { useAdminAuth } from "@/hooks/use-admin"
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Eye,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { VerificationReviewModal } from "@/components/admin/verification-review-modal";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminBreadcrumbs } from "@/components/admin/admin-breadcrumbs";
+import { useAdminAuth } from "@/hooks/use-admin";
+import {
+  adminService,
+  type Verification,
+  type PaginatedVerifications,
+} from "@/lib/admin.service";
 
 export default function AdminVerificationsPage() {
-  const { isAdminAuthenticated } = useAdminAuth()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedVerification, setSelectedVerification] = useState<any>(null)
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const { isAdminAuthenticated } = useAdminAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedVerification, setSelectedVerification] = useState<any>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  // Real data state
+  const [verifications, setVerifications] = useState<Verification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
+  // Load verifications from API
+  const loadVerifications = useCallback(async () => {
+    if (!isAdminAuthenticated) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await adminService.getPendingVerifications({
+        page: pagination.page,
+        limit: pagination.limit,
+      });
+      setVerifications(response.verifications || []);
+      setPagination((prev) => ({
+        ...prev,
+        total: response.total,
+        totalPages: response.totalPages,
+      }));
+    } catch (err) {
+      console.error("Failed to load verifications:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load verifications"
+      );
+      setVerifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdminAuthenticated, pagination.page, pagination.limit]);
+
+  useEffect(() => {
+    loadVerifications();
+  }, [loadVerifications]);
 
   // Check if admin is authenticated
   if (!isAdminAuthenticated) {
@@ -33,208 +97,317 @@ export default function AdminVerificationsPage() {
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
-  // Mock verification requests
-  const verifications = [
-    {
-      id: "ver_1",
-      user_id: "user_1",
-      user_name: "John Doe Farms",
-      user_email: "john@example.com",
-      business_name: "John Doe Agricultural Supplies",
-      registration_number: "RC123456",
-      bank_account: "0123456789",
-      bank_name: "Access Bank",
-      submitted_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      documents: {
-        id_front: "/docs/id_front.jpg",
-        id_back: "/docs/id_back.jpg",
-        selfie: "/docs/selfie.jpg",
-        business_cert: "/docs/business.pdf",
-      },
-    },
-    {
-      id: "ver_2",
-      user_id: "user_2",
-      user_name: "Jane Smith",
-      user_email: "jane@example.com",
-      business_name: "Green Valley Farms",
-      registration_number: "RC789012",
-      bank_account: "9876543210",
-      bank_name: "GTBank",
-      submitted_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      documents: {
-        id_front: "/docs/id_front.jpg",
-        id_back: "/docs/id_back.jpg",
-        selfie: "/docs/selfie.jpg",
-      },
-    },
-    {
-      id: "ver_3",
-      user_id: "user_3",
-      user_name: "Mike Johnson",
-      user_email: "mike@example.com",
-      business_name: "Tropical Harvest Ltd",
-      registration_number: "RC345678",
-      bank_account: "5555555555",
-      bank_name: "Zenith Bank",
-      submitted_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      status: "approved",
-      documents: {
-        id_front: "/docs/id_front.jpg",
-        id_back: "/docs/id_back.jpg",
-        selfie: "/docs/selfie.jpg",
-        business_cert: "/docs/business.pdf",
-      },
-    },
-  ]
+  const handleReview = (verification: Verification) => {
+    setSelectedVerification(verification);
+    setIsReviewModalOpen(true);
+  };
 
-  const handleReview = (verification: any) => {
-    setSelectedVerification(verification)
-    setIsReviewModalOpen(true)
-  }
+  const handleModalClose = (open: boolean) => {
+    setIsReviewModalOpen(open);
+    if (!open) {
+      // Refresh the list when modal closes
+      loadVerifications();
+    }
+  };
 
   const statusConfig = {
-    pending: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100", label: "Pending" },
-    approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10", label: "Approved" },
-    rejected: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/10", label: "Rejected" },
-  }
+    pending: {
+      icon: Clock,
+      color: "text-yellow-600",
+      bg: "bg-yellow-100 dark:bg-yellow-900/30",
+      label: "Pending",
+    },
+    approved: {
+      icon: CheckCircle,
+      color: "text-green-600",
+      bg: "bg-green-100 dark:bg-green-900/30",
+      label: "Approved",
+    },
+    verified: {
+      icon: CheckCircle,
+      color: "text-green-600",
+      bg: "bg-green-100 dark:bg-green-900/30",
+      label: "Verified",
+    },
+    rejected: {
+      icon: XCircle,
+      color: "text-red-600",
+      bg: "bg-red-100 dark:bg-red-900/30",
+      label: "Rejected",
+    },
+  };
+
+  // Filter verifications by search query
+  const filteredVerifications = verifications.filter((v) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      v.user?.name?.toLowerCase().includes(query) ||
+      v.user?.email?.toLowerCase().includes(query) ||
+      v.documents?.business?.registrationNumber?.toLowerCase().includes(query)
+    );
+  });
+
+  // Helper to format steps display
+  const formatSteps = (steps: any[]) => {
+    if (!steps || steps.length === 0) return "N/A";
+    const stepNames: Record<string, string> = {
+      govt_id: "ID",
+      bank: "Bank",
+      business_reg: "Business",
+      tax: "Tax",
+    };
+    return steps.map((s) => stepNames[s.step] || s.step).join(", ");
+  };
+
+  // Count by status
+  const pendingCount = verifications.filter(
+    (v) => v.status?.toLowerCase() === "pending"
+  ).length;
+  const approvedCount = verifications.filter(
+    (v) => v.status?.toLowerCase() === "approved"
+  ).length;
+  const rejectedCount = verifications.filter(
+    (v) => v.status?.toLowerCase() === "rejected"
+  ).length;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <AdminSidebar />
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 space-y-8 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Vendor Verifications</h1>
-          <p className="text-muted-foreground mt-1">Review and approve vendor verification requests</p>
-        </div>
+        <main className="flex-1 space-y-6 p-4 pt-20 md:pt-6 md:p-6 lg:p-8">
+          {/* Breadcrumbs */}
+          <AdminBreadcrumbs items={[{ label: "Verifications" }]} />
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{verifications.filter((v) => v.status === "pending").length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Approved</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{verifications.filter((v) => v.status === "approved").length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-              <XCircle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{verifications.filter((v) => v.status === "rejected").length}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, or business..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                Vendor Verifications
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Review and approve vendor verification requests
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadVerifications}
+              disabled={loading}
+              className="w-fit"
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+          </div>
 
-        {/* Verifications Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Verification Requests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Business Name</TableHead>
-                  <TableHead>Registration</TableHead>
-                  <TableHead>Bank Account</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {verifications.map((verification) => {
-                  const StatusIcon = statusConfig[verification.status as keyof typeof statusConfig].icon
-                  return (
-                    <TableRow key={verification.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{verification.user_name}</p>
-                          <p className="text-sm text-muted-foreground">{verification.user_email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{verification.business_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{verification.registration_number}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-mono text-sm">{verification.bank_account}</p>
-                          <p className="text-xs text-muted-foreground">{verification.bank_name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(verification.submitted_at).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={statusConfig[verification.status as keyof typeof statusConfig].bg}
-                        >
-                          <StatusIcon className="mr-1 h-3 w-3" />
-                          {statusConfig[verification.status as keyof typeof statusConfig].label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => handleReview(verification)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Review
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+          {/* Stats */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pending Review
+                </CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-yellow-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? "—" : pendingCount}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Approved
+                </CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? "—" : approvedCount}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Rejected
+                </CardTitle>
+                <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-red-600" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading ? "—" : rejectedCount}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search */}
+          <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardContent className="pt-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, email, or business..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Error State */}
+          {error && (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="pt-6">
+                <p className="text-destructive text-sm">{error}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Verifications Table */}
+          <Card className="border-0 shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Verification Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center h-[200px]">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filteredVerifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[200px] text-muted-foreground">
+                  <Clock className="h-12 w-12 mb-4 opacity-20" />
+                  <p>No verification requests found</p>
+                  {searchQuery && (
+                    <p className="text-sm mt-1">
+                      Try adjusting your search query
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Vendor</TableHead>
+                        <TableHead className="text-xs">Business Info</TableHead>
+                        <TableHead className="text-xs">
+                          Verification Steps
+                        </TableHead>
+                        <TableHead className="text-xs">Submitted</TableHead>
+                        <TableHead className="text-xs">Status</TableHead>
+                        <TableHead className="text-xs">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredVerifications.map((verification) => {
+                        const status =
+                          verification.status?.toLowerCase() || "pending";
+                        const config =
+                          statusConfig[status as keyof typeof statusConfig] ||
+                          statusConfig.pending;
+                        const StatusIcon = config.icon;
+                        return (
+                          <TableRow key={verification.id}>
+                            <TableCell className="py-3">
+                              <div>
+                                <p className="font-medium text-sm">
+                                  {verification.user?.name || "Unknown"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {verification.user?.email || "—"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div>
+                                <p className="text-sm">
+                                  {verification.documents?.business
+                                    ?.registrationNumber || "No registration"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {verification.documents?.bank?.bankName ||
+                                    "No bank info"}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {verification.steps?.map((step) => (
+                                  <Badge
+                                    key={step.id}
+                                    variant="outline"
+                                    className="text-xs capitalize"
+                                  >
+                                    {step.step.replace("_", " ")}
+                                  </Badge>
+                                )) || (
+                                  <span className="text-xs text-muted-foreground">
+                                    No steps
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-3 text-xs text-muted-foreground">
+                              {new Date(
+                                verification.createdAt
+                              ).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Badge
+                                variant="secondary"
+                                className={`${config.bg} ${config.color} text-xs`}
+                              >
+                                <StatusIcon className="mr-1 h-3 w-3" />
+                                {config.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReview(verification)}
+                                className="h-8"
+                              >
+                                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                Review
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </main>
       </div>
 
       {selectedVerification && (
         <VerificationReviewModal
           open={isReviewModalOpen}
-          onOpenChange={setIsReviewModalOpen}
+          onOpenChange={handleModalClose}
           verification={selectedVerification}
         />
       )}
     </div>
-  )
+  );
 }

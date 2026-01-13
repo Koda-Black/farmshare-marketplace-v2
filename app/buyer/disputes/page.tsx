@@ -25,97 +25,203 @@ import {
   CheckCircle,
   Clock,
   Search,
-  Filter,
   Eye,
   FileText,
-  Plus,
+  ChevronRight,
+  Home,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
+import Link from "next/link";
+import { httpRequest } from "@/lib/httpRequest";
+
+interface Dispute {
+  id: string;
+  reason: string;
+  status: string;
+  resolution?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  pool: {
+    id: string;
+    pricePerSlot: string | number;
+    product: {
+      name: string;
+    };
+    vendor: {
+      name: string;
+    };
+  };
+  subscription?: {
+    slots: number;
+    deliveryFee: number | string;
+  };
+}
 
 export default function BuyerDisputesPage() {
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Mock disputes data - in real implementation, this would come from API
-  const [disputes, setDisputes] = useState([
-    {
-      id: "dispute_1",
-      pool_id: "pool_1",
-      pool_name: "Organic Tomatoes",
-      vendor_name: "Green Valley Farms",
-      reason: "Product quality issues - tomatoes not as organic as advertised",
-      status: "resolved",
-      resolution: "Partial refund issued - 30% compensation",
-      evidence_files: ["photo1.jpg", "photo2.jpg"],
-      created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      resolved_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      amount_involved: 30000,
-    },
-    {
-      id: "dispute_2",
-      pool_id: "pool_2",
-      pool_name: "Fresh Vegetables Mix",
-      vendor_name: "FarmCo Supplies",
-      reason: "Late delivery - vegetables arrived 3 days late",
-      status: "in_review",
-      resolution: null,
-      evidence_files: ["delivery_receipt.jpg"],
-      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      resolved_at: null,
-      amount_involved: 12000,
-    },
-    {
-      id: "dispute_3",
-      pool_id: "pool_3",
-      pool_name: "Premium Rice",
-      vendor_name: "Harvest Valley Farms",
-      reason: "Wrong product variant received",
-      status: "open",
-      resolution: null,
-      evidence_files: ["product_photo.jpg", "order_screenshot.png"],
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      resolved_at: null,
-      amount_involved: 25000,
-    },
-  ]);
+  const fetchDisputes = async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      const data = await httpRequest.get<Dispute[]>("/disputes/my");
+      setDisputes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch disputes:", error);
+      setDisputes([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    fetchDisputes();
   }, []);
 
+  const handleRefresh = () => {
+    fetchDisputes(true);
+  };
+
   const filteredDisputes = disputes.filter((dispute) => {
-    const matchesSearch = dispute.pool_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dispute.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dispute.reason.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || dispute.status === statusFilter;
+    const matchesSearch =
+      dispute.pool?.product?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      dispute.pool?.vendor?.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      dispute.reason?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" ||
+      dispute.status?.toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
   });
 
-  const statusConfig = {
-    open: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", label: "Open" },
-    in_review: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100", label: "In Review" },
-    resolved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10", label: "Resolved" },
+  const statusConfig: Record<
+    string,
+    {
+      icon: typeof AlertTriangle;
+      color: string;
+      bg: string;
+      label: string;
+    }
+  > = {
+    open: {
+      icon: AlertTriangle,
+      color: "text-destructive",
+      bg: "bg-destructive/10",
+      label: "Open",
+    },
+    pending: {
+      icon: Clock,
+      color: "text-yellow-600",
+      bg: "bg-yellow-100",
+      label: "Pending",
+    },
+    in_review: {
+      icon: Clock,
+      color: "text-yellow-600",
+      bg: "bg-yellow-100",
+      label: "In Review",
+    },
+    resolved: {
+      icon: CheckCircle,
+      color: "text-success",
+      bg: "bg-success/10",
+      label: "Resolved",
+    },
+    closed: {
+      icon: CheckCircle,
+      color: "text-muted-foreground",
+      bg: "bg-muted",
+      label: "Closed",
+    },
   };
+
+  const getStatusConfig = (status: string) => {
+    const statusLower = status?.toLowerCase();
+    return (
+      statusConfig[statusLower] || {
+        icon: Clock,
+        color: "text-muted-foreground",
+        bg: "bg-muted",
+        label: status || "Unknown",
+      }
+    );
+  };
+
+  const calculateAmount = (dispute: Dispute) => {
+    const pricePerSlot = Number(dispute.pool?.pricePerSlot) || 0;
+    const slots = Number(dispute.subscription?.slots) || 1;
+    const deliveryFee = Number(dispute.subscription?.deliveryFee) || 0;
+    return slots * pricePerSlot + deliveryFee;
+  };
+
+  const openCount = disputes.filter(
+    (d) => d.status?.toLowerCase() === "open"
+  ).length;
+  const inReviewCount = disputes.filter((d) => {
+    const status = d.status?.toLowerCase();
+    return status === "in_review" || status === "pending";
+  }).length;
+  const resolvedCount = disputes.filter((d) => {
+    const status = d.status?.toLowerCase();
+    return status === "resolved" || status === "closed";
+  }).length;
 
   return (
     <div className="px-[30px] py-8">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+        <Link
+          href="/buyer/dashboard"
+          className="flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          <Home className="h-4 w-4" />
+          Dashboard
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium">My Disputes</span>
+      </nav>
+
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Disputes</h1>
-        <p className="text-muted-foreground mt-1">
-          Track and manage dispute resolutions for your pool investments
-        </p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">My Disputes</h1>
+          <p className="text-muted-foreground mt-1">
+            Track and manage dispute resolutions for your pool investments
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Disputes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Disputes
+            </CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -130,9 +236,7 @@ export default function BuyerDisputesPage() {
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {disputes.filter(d => d.status === "open").length}
-            </div>
+            <div className="text-2xl font-bold">{openCount}</div>
             <p className="text-xs text-muted-foreground">Require attention</p>
           </CardContent>
         </Card>
@@ -143,9 +247,7 @@ export default function BuyerDisputesPage() {
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {disputes.filter(d => d.status === "in_review").length}
-            </div>
+            <div className="text-2xl font-bold">{inReviewCount}</div>
             <p className="text-xs text-muted-foreground">Being processed</p>
           </CardContent>
         </Card>
@@ -156,10 +258,10 @@ export default function BuyerDisputesPage() {
             <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {disputes.filter(d => d.status === "resolved").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Successfully resolved</p>
+            <div className="text-2xl font-bold">{resolvedCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Successfully resolved
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -204,9 +306,17 @@ export default function BuyerDisputesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p>Loading disputes...</p>
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Loading disputes...</p>
+            </div>
+          ) : disputes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <CheckCircle className="h-12 w-12 text-success mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No disputes filed</h3>
+              <p className="text-muted-foreground text-center max-w-md">
+                All your transactions have been smooth! No disputes to show.
+              </p>
             </div>
           ) : (
             <Table>
@@ -223,60 +333,72 @@ export default function BuyerDisputesPage() {
               </TableHeader>
               <TableBody>
                 {filteredDisputes.map((dispute) => {
-                  const StatusIcon = statusConfig[dispute.status as keyof typeof statusConfig].icon;
-                  const statusColor = statusConfig[dispute.status as keyof typeof statusConfig].color;
-                  const statusBg = statusConfig[dispute.status as keyof typeof statusConfig].bg;
-                  const statusLabel = statusConfig[dispute.status as keyof typeof statusConfig].label;
+                  const config = getStatusConfig(dispute.status);
+                  const StatusIcon = config.icon;
+                  const amount = calculateAmount(dispute);
 
                   return (
                     <TableRow key={dispute.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{dispute.pool_name}</p>
+                          <p className="font-medium">
+                            {dispute.pool?.product?.name || "Unknown Pool"}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            ID: {dispute.pool_id}
+                            ID: {dispute.pool?.id?.slice(0, 8)}...
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{dispute.vendor_name}</TableCell>
+                      <TableCell>
+                        {dispute.pool?.vendor?.name || "Unknown Vendor"}
+                      </TableCell>
                       <TableCell>
                         <p className="max-w-xs truncate" title={dispute.reason}>
                           {dispute.reason}
                         </p>
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${statusBg} ${statusColor}`}>
+                        <Badge className={`${config.bg} ${config.color}`}>
                           <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusLabel}
+                          {config.label}
                         </Badge>
                       </TableCell>
-                      <TableCell>₦{dispute.amount_involved.toLocaleString()}</TableCell>
+                      <TableCell>₦{amount.toLocaleString()}</TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <div>{format(new Date(dispute.created_at), "MMM dd, yyyy")}</div>
-                          {dispute.resolved_at && (
+                          <div>
+                            {dispute.createdAt
+                              ? format(
+                                  new Date(dispute.createdAt),
+                                  "MMM dd, yyyy"
+                                )
+                              : "N/A"}
+                          </div>
+                          {dispute.resolvedAt && (
                             <div className="text-muted-foreground">
-                              Resolved: {format(new Date(dispute.resolved_at), "MMM dd")}
+                              Resolved:{" "}
+                              {format(new Date(dispute.resolvedAt), "MMM dd")}
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm" asChild>
-                          <a href={`/buyer/disputes/${dispute.id}`}>
+                          <Link href={`/buyer/disputes/${dispute.id}`}>
                             <Eye className="h-4 w-4" />
-                          </a>
+                          </Link>
                         </Button>
                       </TableCell>
                     </TableRow>
                   );
                 })}
-                {filteredDisputes.length === 0 && (
+                {filteredDisputes.length === 0 && disputes.length > 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      {searchTerm || statusFilter !== "all"
-                        ? "No disputes found matching your filters"
-                        : "No disputes filed yet. All your transactions have been smooth!"}
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-muted-foreground py-8"
+                    >
+                      No disputes found matching your filters
                     </TableCell>
                   </TableRow>
                 )}

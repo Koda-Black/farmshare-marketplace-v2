@@ -6,7 +6,8 @@ import axios, {
 } from "axios";
 import { useStore } from "@/lib/store";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8282";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8282";
 
 class HttpRequest {
   private client: AxiosInstance;
@@ -27,13 +28,13 @@ class HttpRequest {
     // 🔹 Attach JWT token from Zustand - prioritize user token for payments
     this.client.interceptors.request.use((config) => {
       // For payment endpoints, always prioritize user token
-      if (config.url?.includes('/payments/')) {
+      if (config.url?.includes("/payments/")) {
         let userToken = useStore.getState().user?.accessToken;
 
         // If no user token in state, try to restore from persisted storage
         if (!userToken && typeof window !== "undefined") {
           try {
-            const persistedState = localStorage.getItem('farmshare-storage');
+            const persistedState = localStorage.getItem("farmshare-storage");
             if (persistedState) {
               const parsedState = JSON.parse(persistedState);
               const persistedUser = parsedState.state?.user;
@@ -44,15 +45,18 @@ class HttpRequest {
               }
             }
           } catch (error) {
-            console.warn("Failed to restore user token from persisted storage:", error);
+            console.warn(
+              "Failed to restore user token from persisted storage:",
+              error
+            );
           }
         }
 
         if (userToken) {
           config.headers.Authorization = `Bearer ${userToken}`;
-          console.log('Using user token for payment request:', !!userToken);
+          console.log("Using user token for payment request:", !!userToken);
         } else {
-          console.warn('No user token available for payment request');
+          console.warn("No user token available for payment request");
         }
         return config;
       }
@@ -63,7 +67,7 @@ class HttpRequest {
       // If no admin token in state, try to restore from persisted storage
       if (!adminToken && typeof window !== "undefined") {
         try {
-          const persistedState = localStorage.getItem('farmshare-storage');
+          const persistedState = localStorage.getItem("farmshare-storage");
           if (persistedState) {
             const parsedState = JSON.parse(persistedState);
             const persistedAdmin = parsedState.state?.admin;
@@ -74,7 +78,10 @@ class HttpRequest {
             }
           }
         } catch (error) {
-          console.warn("Failed to restore admin token from persisted storage:", error);
+          console.warn(
+            "Failed to restore admin token from persisted storage:",
+            error
+          );
         }
       }
 
@@ -116,8 +123,16 @@ class HttpRequest {
             const adminToken = useStore.getState().admin?.accessToken;
             if (adminToken) {
               useStore.getState().adminLogout();
+              // Redirect admin to login page
+              if (typeof window !== "undefined") {
+                window.location.href = "/admin/login";
+              }
             } else {
               useStore.getState().logout();
+              // Redirect user to login page
+              if (typeof window !== "undefined") {
+                window.location.href = "/login";
+              }
             }
           }
         }
@@ -156,7 +171,9 @@ class HttpRequest {
       if (isAdmin) {
         const admin = useStore.getState().admin;
         if (admin) {
-          useStore.setState({ admin: { ...admin, accessToken: newAccessToken } });
+          useStore.setState({
+            admin: { ...admin, accessToken: newAccessToken },
+          });
         }
       } else {
         const user = useStore.getState().user;
@@ -171,11 +188,17 @@ class HttpRequest {
 
       return newAccessToken;
     } catch (error) {
-      // Logout based on token type
+      // Logout based on token type and redirect
       if (isAdmin) {
         useStore.getState().adminLogout();
+        if (typeof window !== "undefined") {
+          window.location.href = "/admin/login";
+        }
       } else {
         useStore.getState().logout();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
       }
       return null;
     } finally {
@@ -185,12 +208,12 @@ class HttpRequest {
 
   // 🔹 Method to set admin token for admin requests
   setAdminToken(token: string) {
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 
   // 🔹 Clear admin token
   clearAdminToken() {
-    delete this.client.defaults.headers.common['Authorization'];
+    delete this.client.defaults.headers.common["Authorization"];
   }
 
   // 🔹 Generic CRUD methods

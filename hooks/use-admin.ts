@@ -18,7 +18,7 @@ export function useAdminAuth() {
           const adminAuthData = JSON.parse(adminAuthCookie);
           if (adminAuthData.isAdminAuthenticated) {
             // Try to restore from Zustand persisted storage first
-            const persistedState = localStorage.getItem('farmshare-storage');
+            const persistedState = localStorage.getItem("farmshare-storage");
             if (persistedState) {
               try {
                 const parsedState = JSON.parse(persistedState);
@@ -29,7 +29,10 @@ export function useAdminAuth() {
                   return;
                 }
               } catch (persistError) {
-                console.warn("Failed to restore from persisted storage:", persistError);
+                console.warn(
+                  "Failed to restore from persisted storage:",
+                  persistError
+                );
               }
             }
 
@@ -71,13 +74,17 @@ export function useAdminAuth() {
         setAdmin(adminData);
 
         // Set admin cookie for middleware
-        Cookies.set("farmshare-admin-auth", JSON.stringify({
-          isAdminAuthenticated: true,
-          admin: { role: "admin" }
-        }), {
-          path: "/",
-          expires: 7 // 7 days
-        });
+        Cookies.set(
+          "farmshare-admin-auth",
+          JSON.stringify({
+            isAdminAuthenticated: true,
+            admin: { role: "admin" },
+          }),
+          {
+            path: "/",
+            expires: 7, // 7 days
+          }
+        );
       }
 
       return response;
@@ -86,10 +93,16 @@ export function useAdminAuth() {
     }
   };
 
-  const verifyMfa = async (token: string) => {
+  const verifyMfa = async (token: string, email?: string) => {
     try {
+      // Use provided email, or fallback to stored admin email
+      const userEmail = email || admin?.email;
+      if (!userEmail) {
+        throw new Error("Email is required for MFA verification");
+      }
+
       const response = await adminService.verifyMfaLogin({
-        email: admin?.email || "",
+        email: userEmail,
         token,
       });
 
@@ -103,13 +116,17 @@ export function useAdminAuth() {
         setAdmin(adminData);
 
         // Set admin cookie for middleware
-        Cookies.set("farmshare-admin-auth", JSON.stringify({
-          isAdminAuthenticated: true,
-          admin: { role: "admin" }
-        }), {
-          path: "/",
-          expires: 7 // 7 days
-        });
+        Cookies.set(
+          "farmshare-admin-auth",
+          JSON.stringify({
+            isAdminAuthenticated: true,
+            admin: { role: "admin" },
+          }),
+          {
+            path: "/",
+            expires: 7, // 7 days
+          }
+        );
       }
 
       return response;
@@ -149,10 +166,15 @@ export function useAdminDashboard() {
     setPendingVerifications,
     setManagedUsers,
     setManagedDisputes,
-    setDisputeStats
+    setDisputeStats,
   } = useStore();
 
-  const loading = { dashboard: false, verifications: false, users: false, disputes: false };
+  const loading = {
+    dashboard: false,
+    verifications: false,
+    users: false,
+    disputes: false,
+  };
 
   const loadDashboard = async () => {
     try {
@@ -166,7 +188,11 @@ export function useAdminDashboard() {
     }
   };
 
-  const loadPendingVerifications = async (params?: { page?: number; limit?: number; status?: string }) => {
+  const loadPendingVerifications = async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) => {
     try {
       loading.verifications = true;
       const data = await adminService.getPendingVerifications(params);
@@ -178,7 +204,13 @@ export function useAdminDashboard() {
     }
   };
 
-  const loadUsers = async (params?: { search?: string; role?: string; isVerified?: boolean; page?: number; limit?: number }) => {
+  const loadUsers = async (params?: {
+    search?: string;
+    role?: string;
+    isVerified?: boolean;
+    page?: number;
+    limit?: number;
+  }) => {
     try {
       loading.users = true;
       const data = await adminService.searchUsers(params);
@@ -190,7 +222,11 @@ export function useAdminDashboard() {
     }
   };
 
-  const loadDisputes = async (params?: { page?: number; limit?: number; status?: string }) => {
+  const loadDisputes = async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) => {
     try {
       loading.disputes = true;
       const data = await adminService.getDisputes(params);
@@ -202,7 +238,10 @@ export function useAdminDashboard() {
     }
   };
 
-  const approveVerification = async (verificationId: string, notes?: string) => {
+  const approveVerification = async (
+    verificationId: string,
+    notes?: string
+  ) => {
     try {
       await adminService.approveVerification({ verificationId, notes });
       // Refresh pending verifications
@@ -213,9 +252,17 @@ export function useAdminDashboard() {
     }
   };
 
-  const rejectVerification = async (verificationId: string, reason: string, feedback?: string) => {
+  const rejectVerification = async (
+    verificationId: string,
+    reason: string,
+    feedback?: string
+  ) => {
     try {
-      await adminService.rejectVerification({ verificationId, reason, feedback });
+      await adminService.rejectVerification({
+        verificationId,
+        reason,
+        feedback,
+      });
       // Refresh pending verifications
       await loadPendingVerifications();
     } catch (error) {
@@ -246,7 +293,12 @@ export function useAdminDashboard() {
     }
   };
 
-  const resolveDispute = async (data: { disputeId: string; action: 'refund' | 'release' | 'split'; distribution?: Record<string, number>; resolutionNotes?: string }) => {
+  const resolveDispute = async (data: {
+    disputeId: string;
+    action: "refund" | "release" | "split";
+    distribution?: Record<string, number>;
+    resolutionNotes?: string;
+  }) => {
     try {
       await adminService.resolveDispute(data);
       // Refresh disputes

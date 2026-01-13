@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useAdminAuth } from "@/hooks/use-admin"
-import { adminService } from "@/lib/admin.service"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAdminAuth } from "@/hooks/use-admin";
+import { adminService } from "@/lib/admin.service";
 import {
   LayoutDashboard,
   Users,
@@ -19,8 +19,10 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Menu
-} from "lucide-react"
+  Menu,
+  Wallet,
+  Mail,
+} from "lucide-react";
 
 const navigation = [
   {
@@ -44,6 +46,16 @@ const navigation = [
     icon: Package,
   },
   {
+    name: "Payouts",
+    href: "/admin/payouts",
+    icon: Wallet,
+  },
+  {
+    name: "Newsletter",
+    href: "/admin/newsletter",
+    icon: Mail,
+  },
+  {
     name: "Disputes",
     href: "/admin/disputes",
     icon: AlertTriangle,
@@ -53,27 +65,27 @@ const navigation = [
     href: "/admin/settings",
     icon: Settings,
   },
-]
+];
 
 export function AdminSidebar() {
-  const pathname = usePathname()
-  const { admin, logout } = useAdminAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname();
+  const { admin, logout } = useAdminAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    logout()
-    adminService.adminLogout()
-    window.location.href = "/admin/login"
-  }
+    logout();
+    adminService.adminLogout();
+    window.location.href = "/admin/login";
+  };
 
   const handleNavigation = () => {
-    setMobileOpen(false)
-  }
+    setMobileOpen(false);
+  };
 
   const sidebarContent = (
-    <div className="flex h-full max-h-screen flex-col gap-2">
-      <div className="flex h-14 items-center border-b px-4 lg:h-[60px] justify-between">
+    <div className="flex h-full flex-col">
+      <div className="flex h-14 items-center border-b px-4 lg:h-[60px] justify-between flex-shrink-0">
         <Link
           href="/admin"
           className={cn(
@@ -90,16 +102,22 @@ export function AdminSidebar() {
           className="hidden md:flex"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
         </Button>
       </div>
-      <div className="flex-1">
-        <nav className={cn(
-          "grid items-start text-sm font-medium transition-all",
-          isCollapsed ? "px-2" : "px-2 lg:px-4"
-        )}>
+      <div className="flex-1 overflow-y-auto py-2">
+        <nav
+          className={cn(
+            "grid items-start gap-1 text-sm font-medium transition-all",
+            isCollapsed ? "px-2" : "px-2 lg:px-4"
+          )}
+        >
           {navigation.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -115,19 +133,18 @@ export function AdminSidebar() {
                 <item.icon className="h-4 w-4 flex-shrink-0" />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
-            )
+            );
           })}
         </nav>
       </div>
-      <div className={cn(
-        "mt-auto p-4 transition-all",
-        isCollapsed && "px-2"
-      )}>
-        <div className="space-y-4">
+      <div className={cn("border-t p-3 flex-shrink-0", isCollapsed && "px-2")}>
+        <div className="space-y-2">
           {!isCollapsed ? (
-            <div className="p-3 rounded-lg bg-muted">
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-muted-foreground truncate">{admin?.email}</p>
+            <div className="p-2 rounded-lg bg-muted">
+              <p className="text-sm font-medium truncate">Admin User</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {admin?.email}
+              </p>
               <Badge variant="secondary" className="mt-1">
                 {admin?.role}
               </Badge>
@@ -136,7 +153,7 @@ export function AdminSidebar() {
             <div className="p-2 rounded-lg bg-muted flex justify-center">
               <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
                 <span className="text-xs font-medium">
-                  {admin?.name?.charAt(0)?.toUpperCase() || 'A'}
+                  {admin?.name?.charAt(0)?.toUpperCase() || "A"}
                 </span>
               </div>
             </div>
@@ -156,17 +173,26 @@ export function AdminSidebar() {
         </div>
       </div>
     </div>
-  )
+  );
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <div className={cn(
-        "hidden border-r bg-muted/40 md:block transition-all duration-300",
-        isCollapsed ? "w-[60px]" : "w-[220px] lg:w-[280px]"
-      )}>
+      {/* Desktop Sidebar - Fixed position */}
+      <div
+        className={cn(
+          "hidden md:flex flex-col fixed left-0 top-0 h-screen border-r bg-muted/40 transition-all duration-300 z-40",
+          isCollapsed ? "w-[60px]" : "w-[220px] lg:w-[280px]"
+        )}
+      >
         {sidebarContent}
       </div>
+      {/* Spacer div to push content right */}
+      <div
+        className={cn(
+          "hidden md:block flex-shrink-0 transition-all duration-300",
+          isCollapsed ? "w-[60px]" : "w-[220px] lg:w-[280px]"
+        )}
+      />
 
       {/* Mobile Sidebar */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -185,5 +211,5 @@ export function AdminSidebar() {
         </SheetContent>
       </Sheet>
     </>
-  )
+  );
 }

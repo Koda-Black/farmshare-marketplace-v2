@@ -288,7 +288,7 @@ export default function AboutPage() {
                     asChild
                     className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl"
                   >
-                    <Link href="/marketplace">Browse Pools</Link>
+                    <Link href="/buyer/marketplace">Browse Pools</Link>
                   </Button>
                 </div>
               </div>
