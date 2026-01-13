@@ -19,17 +19,32 @@ import { BusinessRegistrationStep } from "@/components/verification/business-reg
 import { BankAccountStep } from "@/components/verification/bank-account-step";
 import { BusinessDetailsStep } from "@/components/verification/business-details-step";
 import { useStore } from "@/lib/store";
+import { verificationService } from "@/lib/verification.service";
+import { useToast } from "@/hooks/use-toast";
 
 type VerificationStep = "id" | "business" | "bank" | "details";
 
 export default function VendorVerificationPage() {
   const router = useRouter();
   const user = useStore((state) => state.user);
+  const updateUser = useStore((state) => state.setUser);
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<VerificationStep>("id");
   const [completedSteps, setCompletedSteps] = useState<Set<VerificationStep>>(
     new Set()
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationData, setVerificationData] = useState<{
+    idFile?: File;
+    businessFile?: File;
+    bankData?: { accountNumber: string; bankCode: string; accountName: string };
+    businessDetails?: {
+      taxId?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+    };
+  }>({});
 
   const steps = [
     { id: "id" as const, label: "Government ID", required: true },
@@ -45,23 +60,96 @@ export default function VendorVerificationPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
   const progress = ((completedSteps.size + 1) / steps.length) * 100;
 
-  const handleStepComplete = (step: VerificationStep) => {
+  const handleStepComplete = (step: VerificationStep, data?: any) => {
     setCompletedSteps((prev) => new Set([...prev, step]));
+
+    // Store data from each step
+    if (data) {
+      setVerificationData((prev) => ({
+        ...prev,
+        ...(step === "id" && data.file ? { idFile: data.file } : {}),
+        ...(step === "business" && data.file
+          ? { businessFile: data.file }
+          : {}),
+        ...(step === "bank" && data.bankData
+          ? { bankData: data.bankData }
+          : {}),
+        ...(step === "details" && data.businessDetails
+          ? { businessDetails: data.businessDetails }
+          : {}),
+      }));
+    }
+
     const nextStepIndex = currentStepIndex + 1;
     if (nextStepIndex < steps.length) {
       setCurrentStep(steps[nextStepIndex].id);
     }
   };
 
+  // Map frontend step names to backend expected format
+  const mapStepToBackend = (step: string): string => {
+    const stepMap: Record<string, string> = {
+      id: "govt_id",
+      business: "business_reg",
+      bank: "bank",
+      details: "tax",
+    };
+    return stepMap[step] || step;
+  };
+
   const handleSubmitVerification = async () => {
     setIsSubmitting(true);
     try {
-      // TODO: Replace with actual API call
+      // Start the verification process with the required steps (mapped to backend format)
+      const stepsToVerify = ["govt_id", "bank"];
+      if (completedSteps.has("business")) stepsToVerify.push("business_reg");
+      if (completedSteps.has("details")) stepsToVerify.push("tax");
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const startResult = await verificationService.startVerification(
+        stepsToVerify
+      );
+
+      if (startResult.verificationId) {
+        // Collect all files for submission
+        const files: File[] = [];
+        if (verificationData.idFile) files.push(verificationData.idFile);
+        if (verificationData.businessFile)
+          files.push(verificationData.businessFile);
+
+        // Submit verification with collected data
+        await verificationService.submitVerification(
+          startResult.verificationId,
+          files,
+          {
+            bankData: verificationData.bankData,
+            businessDetails: verificationData.businessDetails,
+          }
+        );
+      }
+
+      // Update user state to reflect pending verification
+      if (user) {
+        updateUser({
+          ...user,
+          verification_status: "pending",
+        });
+      }
+
+      toast({
+        title: "Verification Submitted!",
+        description:
+          "Your verification is being reviewed. You'll be notified once approved.",
+      });
+
       router.push("/vendor/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Verification submission failed:", error);
+      toast({
+        title: "Submission Failed",
+        description:
+          error.message || "Failed to submit verification. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

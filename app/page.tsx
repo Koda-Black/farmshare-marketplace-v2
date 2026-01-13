@@ -21,6 +21,7 @@ import { useStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { httpRequest } from "@/lib/httpRequest";
+import { HomePoolCard } from "@/components/home/home-pool-card";
 
 interface Testimonial {
   id: number;
@@ -74,13 +75,17 @@ const stats = [
 interface Pool {
   id: string;
   product_name: string;
+  product_description?: string;
   product_image: string;
   price_per_slot: number;
   slots_count: number;
   slots_filled: number;
   vendor_name: string;
+  vendor_verified?: boolean;
   allow_home_delivery: boolean;
+  home_delivery_cost?: number;
   delivery_deadline: string;
+  category?: string;
 }
 
 export default function HomePage() {
@@ -406,117 +411,30 @@ export default function HomePage() {
               Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="pt-10 pb-20 px-8 bg-white dark:bg-card rounded-3xl shadow-lg relative"
+                  className="bg-white dark:bg-card rounded-2xl shadow-lg overflow-hidden"
                 >
-                  <div className="h-32 w-32 shimmer rounded-lg mb-6" />
-                  <div className="h-8 shimmer rounded-md w-1/2 mb-6" />
-                  <div className="h-12 shimmer rounded-full w-full mb-6" />
-                  <div className="h-10 shimmer rounded-md w-3/4 mb-3" />
-                  <div className="h-5 shimmer rounded-md w-1/2" />
+                  <div className="h-44 shimmer" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-3 shimmer rounded w-1/3" />
+                    <div className="h-5 shimmer rounded w-2/3" />
+                    <div className="h-8 shimmer rounded w-full" />
+                    <div className="h-2 shimmer rounded w-full" />
+                    <div className="flex justify-between">
+                      <div className="h-6 shimmer rounded w-1/3" />
+                      <div className="h-4 shimmer rounded w-1/4" />
+                    </div>
+                    <div className="h-10 shimmer rounded-xl w-full" />
+                  </div>
                 </div>
               ))
-            ) : pools.length > 0 ? (
-              pools.map((pool, index) => (
-                <div
+            ) : filteredPools.length > 0 ? (
+              filteredPools.map((pool, index) => (
+                <HomePoolCard
                   key={pool.id}
-                  className="pt-8 pb-24 px-8 bg-white dark:bg-card rounded-3xl shadow-lg hover:shadow-2xl relative cursor-pointer hover:bg-primary group transition-all duration-300 animate-fade-in-up"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {/* Decorative star image */}
-                  <Image
-                    src={`/assets/pricing/star${
-                      (index % 3) + 1 === 1
-                        ? "one"
-                        : (index % 3) + 1 === 2
-                        ? "two"
-                        : "three"
-                    }.svg`}
-                    alt="decorative"
-                    width={120}
-                    height={120}
-                    className="absolute bottom-0 right-0 opacity-50 group-hover:opacity-70 transition-opacity"
-                  />
-
-                  {/* Product Image */}
-                  <div className="relative h-28 w-28 mb-4 rounded-2xl overflow-hidden bg-muted">
-                    <Image
-                      src={pool.product_image || "/placeholder.svg"}
-                      alt={pool.product_name}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <Badge className="absolute -top-1 -right-1 bg-accent text-white text-xs shadow-lg">
-                      {pool.slots_filled}/{pool.slots_count}
-                    </Badge>
-                  </div>
-
-                  {/* Product Name */}
-                  <h4 className="text-3xl sm:text-4xl font-semibold mb-6 text-foreground group-hover:text-white transition-colors">
-                    {pool.product_name}
-                  </h4>
-
-                  {/* Join Button */}
-                  <Button
-                    onClick={() => handleJoinPool(pool.id)}
-                    className="text-lg font-medium text-white w-full bg-primary hover:bg-primary/90 group-hover:bg-accent group-hover:border-accent border-2 border-primary rounded-full py-5 px-8 mb-6 transition-all duration-300"
-                    disabled={pool.slots_filled >= pool.slots_count}
-                  >
-                    {pool.slots_filled >= pool.slots_count
-                      ? "Pool Full"
-                      : "Join this pool"}
-                  </Button>
-
-                  {/* Pricing */}
-                  <h2 className="text-3xl sm:text-4xl font-semibold text-foreground mb-2 group-hover:text-white transition-colors">
-                    ₦{(pool.price_per_slot / 1000).toFixed(0)}k/
-                    <span className="text-muted-foreground group-hover:text-white/60">
-                      slot
-                    </span>
-                  </h2>
-                  <p className="text-base font-normal text-muted-foreground group-hover:text-white/80 transition-colors mb-4">
-                    {pool.vendor_name}
-                  </p>
-
-                  {/* Features */}
-                  <div className="space-y-3 pt-4">
-                    <div className="flex gap-3 items-center">
-                      <Image
-                        src="/assets/pricing/tick.svg"
-                        alt="check"
-                        width={24}
-                        height={24}
-                      />
-                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
-                        {pool.allow_home_delivery
-                          ? "Home delivery available"
-                          : "Pickup only"}
-                      </p>
-                    </div>
-                    <div className="flex gap-3 items-center">
-                      <Image
-                        src="/assets/pricing/tick.svg"
-                        alt="check"
-                        width={24}
-                        height={24}
-                      />
-                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
-                        Closes{" "}
-                        {new Date(pool.delivery_deadline).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex gap-3 items-center">
-                      <Image
-                        src="/assets/pricing/tick.svg"
-                        alt="check"
-                        width={24}
-                        height={24}
-                      />
-                      <p className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
-                        {pool.slots_count - pool.slots_filled} slots remaining
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  pool={pool}
+                  onJoin={handleJoinPool}
+                  index={index}
+                />
               ))
             ) : (
               <div className="col-span-full text-center py-16">

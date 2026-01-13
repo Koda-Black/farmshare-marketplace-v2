@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,10 @@ import {
   X,
   FileText,
   Scan,
+  Shield,
+  User,
+  CreditCard,
+  Calendar,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
@@ -66,32 +70,13 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
   // Show webcam modal
   const [showWebcam, setShowWebcam] = useState(false);
 
-  // Handle ID document upload
-  const handleIdUpload = async (file: File) => {
-    setIdImage(file);
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setIdImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Reset previous results
-    setOcrResult(null);
-    setExtractedData(null);
-    setFaceVerificationResult(null);
-  };
-
   // Extract data from ID using OCR
-  const handleExtractData = async () => {
-    if (!idImage) return;
-
+  const extractDocumentData = useCallback(async (file: File) => {
     setIsExtractingOcr(true);
     setOcrResult(null);
 
     try {
-      const result = await verificationService.extractDocumentData(idImage);
+      const result = await verificationService.extractDocumentData(file);
 
       if (result.success) {
         setExtractedData({
@@ -108,7 +93,9 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
       } else {
         setOcrResult({
           success: false,
-          message: result.message || "Could not extract document data. Please try a clearer image.",
+          message:
+            result.message ||
+            "Could not extract document data. Please try a clearer image.",
         });
       }
     } catch (error: any) {
@@ -119,6 +106,26 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
     } finally {
       setIsExtractingOcr(false);
     }
+  }, []);
+
+  // Handle ID document upload - AUTO-TRIGGERS OCR extraction
+  const handleIdUpload = async (file: File) => {
+    setIdImage(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setIdImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Reset previous results
+    setOcrResult(null);
+    setExtractedData(null);
+    setFaceVerificationResult(null);
+
+    // Auto-trigger OCR extraction
+    extractDocumentData(file);
   };
 
   // Verify face match between selfie and ID
@@ -139,7 +146,9 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
         setFaceVerificationResult({
           success: true,
           confidence: result.confidence,
-          message: `Face verification successful (${result.confidence?.toFixed(1)}% match)`,
+          message: `Face verification successful (${result.confidence?.toFixed(
+            1
+          )}% match)`,
         });
       } else {
         setFaceVerificationResult({
@@ -172,44 +181,79 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
 
   return (
     <div className="space-y-6">
-      {/* Instructions */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Upload a clear photo of your government ID and take a selfie for identity verification.
-          We'll extract your information automatically.
-        </AlertDescription>
-      </Alert>
+      {/* Header */}
+      <div className="text-center pb-2">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 mx-auto mb-3">
+          <Shield className="h-7 w-7 text-primary" />
+        </div>
+        <h2 className="text-xl font-semibold mb-1">Identity Verification</h2>
+        <p className="text-sm text-muted-foreground">
+          Upload your government ID and take a selfie to verify your identity
+        </p>
+      </div>
 
       {/* ID Type Selection */}
       <div className="space-y-2">
-        <Label>ID Type</Label>
+        <Label className="text-base font-medium">Select ID Type</Label>
         <Select onValueChange={setIdType} value={idType}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select ID type" />
+          <SelectTrigger className="w-full h-12">
+            <SelectValue placeholder="Choose your ID type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="NIN">NIN Card</SelectItem>
-            <SelectItem value="DRIVERS_LICENSE">Driver's License</SelectItem>
-            <SelectItem value="PASSPORT">International Passport</SelectItem>
-            <SelectItem value="VOTER_CARD">Voter's Card</SelectItem>
+            <SelectItem value="NIN">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                NIN Card
+              </div>
+            </SelectItem>
+            <SelectItem value="DRIVERS_LICENSE">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Driver&apos;s License
+              </div>
+            </SelectItem>
+            <SelectItem value="PASSPORT">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                International Passport
+              </div>
+            </SelectItem>
+            <SelectItem value="VOTER_CARD">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Voter&apos;s Card
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Step 1: Upload ID Document */}
       {idType && (
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            <h3 className="font-medium">Step 1: Upload ID Document</h3>
+        <Card className="p-6 space-y-4 border-2 border-muted hover:border-primary/30 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Step 1: Upload ID Document</h3>
+              <p className="text-sm text-muted-foreground">
+                Upload a clear photo of your {idType.replace("_", " ")}
+              </p>
+            </div>
+            {isOcrComplete && (
+              <Badge className="ml-auto bg-success text-success-foreground">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Complete
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>ID Document Photo</Label>
-              <Card className="border-2 border-dashed hover:border-primary/50 transition-colors">
-                <label className="flex flex-col items-center justify-center h-48 cursor-pointer p-4">
+              <Label className="text-base font-medium">ID Document Photo</Label>
+              <Card className="border-2 border-dashed hover:border-primary/50 transition-colors overflow-hidden">
+                <label className="flex flex-col items-center justify-center min-h-48 cursor-pointer p-4 relative">
                   <input
                     type="file"
                     accept="image/*"
@@ -223,12 +267,12 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                       <img
                         src={idImagePreview}
                         alt="ID preview"
-                        className="w-full h-full object-contain rounded"
+                        className="w-full h-48 object-contain rounded"
                       />
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-2 right-2 bg-background"
+                        className="absolute top-2 right-2 bg-background/80 hover:bg-background"
                         onClick={(e) => {
                           e.preventDefault();
                           setIdImage(null);
@@ -239,23 +283,53 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                       >
                         <X className="h-4 w-4" />
                       </Button>
+
+                      {/* OCR Progress Overlay */}
+                      {isExtractingOcr && (
+                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded">
+                          <div className="text-center space-y-3">
+                            <div className="relative">
+                              <Scan className="h-10 w-10 text-primary animate-pulse" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                Extracting Document Data...
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                This may take a few seconds
+                              </p>
+                            </div>
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-primary" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="text-center space-y-2">
-                      <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
-                      <p className="text-sm font-medium">Upload ID Document</p>
-                      <p className="text-xs text-muted-foreground">
-                        Click to select or drag and drop
-                      </p>
+                    <div className="text-center space-y-3 py-4">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                        <Upload className="h-8 w-8 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          Upload ID Document
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Click to select or drag and drop
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        JPG, PNG up to 10MB
+                      </Badge>
                     </div>
                   )}
                 </label>
               </Card>
             </div>
 
-            {idImage && !isOcrComplete && (
+            {/* Retry button if OCR failed */}
+            {ocrResult && !ocrResult.success && idImage && (
               <Button
-                onClick={handleExtractData}
+                onClick={() => extractDocumentData(idImage)}
                 disabled={isExtractingOcr}
                 className="w-full"
                 variant="outline"
@@ -268,7 +342,7 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                 ) : (
                   <>
                     <Scan className="mr-2 h-4 w-4" />
-                    Extract Data from Document
+                    Retry Data Extraction
                   </>
                 )}
               </Button>
@@ -276,7 +350,12 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
 
             {/* OCR Result */}
             {ocrResult && (
-              <Alert variant={ocrResult.success ? "default" : "destructive"}>
+              <Alert
+                variant={ocrResult.success ? "default" : "destructive"}
+                className={
+                  ocrResult.success ? "border-success bg-success/10" : ""
+                }
+              >
                 {ocrResult.success ? (
                   <CheckCircle className="h-4 w-4 text-success" />
                 ) : (
@@ -286,7 +365,7 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                   <div className="flex items-center justify-between">
                     <span>{ocrResult.message}</span>
                     {ocrResult.success && ocrResult.confidence && (
-                      <Badge variant="secondary">
+                      <Badge className="bg-success text-success-foreground">
                         {ocrResult.confidence}% confidence
                       </Badge>
                     )}
@@ -297,31 +376,61 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
 
             {/* Extracted Data Display */}
             {extractedData && (
-              <div className="grid gap-4 p-4 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-2 text-success">
+              <Card className="p-4 bg-gradient-to-br from-success/5 to-primary/5 border-success/20">
+                <div className="flex items-center gap-2 text-success mb-4">
                   <CheckCircle className="h-5 w-5" />
-                  <span className="font-medium">Data Extracted Successfully</span>
+                  <span className="font-semibold">
+                    Data Extracted Successfully
+                  </span>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Full Name</Label>
-                    <Input value={extractedData.fullName || ""} readOnly />
+                    <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      Full Name
+                    </Label>
+                    <Input
+                      value={extractedData.fullName || ""}
+                      readOnly
+                      className="bg-background"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Document Number</Label>
-                    <Input value={extractedData.documentNumber || ""} readOnly />
+                    <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CreditCard className="h-3 w-3" />
+                      Document Number
+                    </Label>
+                    <Input
+                      value={extractedData.documentNumber || ""}
+                      readOnly
+                      className="bg-background"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Date of Birth</Label>
-                    <Input value={extractedData.dateOfBirth || ""} readOnly />
+                    <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      Date of Birth
+                    </Label>
+                    <Input
+                      value={extractedData.dateOfBirth || ""}
+                      readOnly
+                      className="bg-background"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Gender</Label>
-                    <Input value={extractedData.gender || ""} readOnly />
+                    <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      Gender
+                    </Label>
+                    <Input
+                      value={extractedData.gender || ""}
+                      readOnly
+                      className="bg-background"
+                    />
                   </div>
                 </div>
-              </div>
+              </Card>
             )}
           </div>
         </Card>
@@ -329,29 +438,59 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
 
       {/* Step 2: Take Selfie & Verify Face */}
       {isOcrComplete && (
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            <h3 className="font-medium">Step 2: Verify Your Face</h3>
+        <Card className="p-6 space-y-4 border-2 border-muted hover:border-primary/30 transition-all">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Camera className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Step 2: Verify Your Face</h3>
+              <p className="text-sm text-muted-foreground">
+                Take a selfie to match with your ID photo
+              </p>
+            </div>
+            {isFaceVerified && (
+              <Badge className="ml-auto bg-success text-success-foreground">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Verified
+              </Badge>
+            )}
           </div>
 
           {!showWebcam && !selfieImage && (
-            <Button
+            <Card
+              className="border-2 border-dashed p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => setShowWebcam(true)}
-              className="w-full"
-              variant="outline"
             >
-              <Camera className="mr-2 h-4 w-4" />
-              Take Selfie
-            </Button>
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto mb-4">
+                <Camera className="h-8 w-8 text-primary" />
+              </div>
+              <p className="font-medium mb-1">Take a Selfie</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Click to open your camera and take a clear photo of your face
+              </p>
+              <Button variant="outline" className="mx-auto">
+                <Camera className="mr-2 h-4 w-4" />
+                Open Camera
+              </Button>
+            </Card>
           )}
 
           {showWebcam && (
-            <WebcamCapture
-              onCapture={handleSelfieCapture}
-              label="Take a clear selfie"
-              buttonText="Capture Selfie"
-            />
+            <div className="space-y-4">
+              <WebcamCapture
+                onCapture={handleSelfieCapture}
+                label="Take a clear selfie"
+                buttonText="Capture Selfie"
+              />
+              <Button
+                variant="ghost"
+                onClick={() => setShowWebcam(false)}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
           )}
 
           {selfieImage && !showWebcam && (
@@ -365,7 +504,7 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute top-2 right-2 bg-background"
+                  className="absolute top-2 right-2 bg-background/80 hover:bg-background"
                   onClick={() => {
                     setSelfieImage("");
                     setFaceVerificationResult(null);
@@ -379,7 +518,7 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                 <Button
                   onClick={handleVerifyFace}
                   disabled={isVerifyingFace}
-                  className="w-full"
+                  className="w-full h-12"
                 >
                   {isVerifyingFace ? (
                     <>
@@ -388,7 +527,7 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
                     </>
                   ) : (
                     <>
-                      <Scan className="mr-2 h-4 w-4" />
+                      <Shield className="mr-2 h-4 w-4" />
                       Verify Face Match
                     </>
                   )}
@@ -400,7 +539,14 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
           {/* Face Verification Result */}
           {faceVerificationResult && (
             <Alert
-              variant={faceVerificationResult.success ? "default" : "destructive"}
+              variant={
+                faceVerificationResult.success ? "default" : "destructive"
+              }
+              className={
+                faceVerificationResult.success
+                  ? "border-success bg-success/10"
+                  : ""
+              }
             >
               {faceVerificationResult.success ? (
                 <CheckCircle className="h-4 w-4 text-success" />
@@ -410,11 +556,12 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
               <AlertDescription>
                 <div className="flex items-center justify-between">
                   <span>{faceVerificationResult.message}</span>
-                  {faceVerificationResult.success && faceVerificationResult.confidence && (
-                    <Badge className="bg-success text-success-foreground">
-                      {faceVerificationResult.confidence.toFixed(1)}% match
-                    </Badge>
-                  )}
+                  {faceVerificationResult.success &&
+                    faceVerificationResult.confidence && (
+                      <Badge className="bg-success text-success-foreground">
+                        {faceVerificationResult.confidence.toFixed(1)}% match
+                      </Badge>
+                    )}
                 </div>
               </AlertDescription>
             </Alert>
@@ -424,28 +571,31 @@ export function GovernmentIdStep({ onComplete }: GovernmentIdStepProps) {
 
       {/* Complete Button */}
       {isAllComplete && (
-        <Alert className="border-success bg-success/10">
-          <CheckCircle className="h-4 w-4 text-success" />
-          <AlertDescription>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-success">Identity Verified!</p>
-                <p className="text-sm text-muted-foreground">
-                  Your identity has been successfully verified. Continue to the next step.
-                </p>
-              </div>
+        <Card className="p-4 border-success bg-gradient-to-r from-success/10 to-primary/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
+              <CheckCircle className="h-6 w-6 text-success" />
             </div>
-          </AlertDescription>
-        </Alert>
+            <div>
+              <p className="font-semibold text-success">Identity Verified!</p>
+              <p className="text-sm text-muted-foreground">
+                Your identity has been successfully verified
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
 
       <Button
         onClick={onComplete}
         disabled={!isAllComplete}
-        className="w-full bg-success hover:bg-success/90 text-success-foreground disabled:opacity-50"
+        className="w-full h-12 bg-success hover:bg-success/90 text-success-foreground disabled:opacity-50"
+        size="lg"
       >
-        <CheckCircle className="mr-2 h-4 w-4" />
-        {isAllComplete ? "Continue to Next Step" : "Complete Verification First"}
+        <CheckCircle className="mr-2 h-5 w-5" />
+        {isAllComplete
+          ? "Continue to Next Step"
+          : "Complete Verification First"}
       </Button>
     </div>
   );

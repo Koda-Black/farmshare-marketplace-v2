@@ -1,12 +1,58 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8282";
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleNewsletterSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !email.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/newsletter/subscribe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          source: "footer",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          data.message || "Successfully subscribed to our newsletter!"
+        );
+        setEmail("");
+      } else {
+        toast.error(data.message || "Failed to subscribe. Please try again.");
+      }
+    } catch {
+      toast.error("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-primary text-primary-foreground">
       {/* Sign Up CTA Section */}
@@ -44,16 +90,33 @@ export function Footer() {
                 Get the latest pools and farming tips delivered to your inbox.
               </p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto max-w-md">
+            <form
+              onSubmit={handleNewsletterSubscribe}
+              className="flex gap-2 w-full md:w-auto max-w-md"
+            >
               <Input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-accent focus:ring-accent"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-accent focus:ring-accent disabled:opacity-50"
               />
-              <Button className="bg-accent hover:bg-accent/90 text-white whitespace-nowrap rounded-lg shadow-lg shadow-accent/20">
-                Subscribe
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-accent hover:bg-accent/90 text-white whitespace-nowrap rounded-lg shadow-lg shadow-accent/20 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Subscribing...
+                  </>
+                ) : (
+                  "Subscribe"
+                )}
               </Button>
-            </div>
+            </form>
           </div>
         </div>
       </div>
@@ -150,7 +213,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm text-white/70">
               <li>
                 <Link
-                  href="/marketplace"
+                  href="/buyer/marketplace"
                   className="hover:text-white hover:translate-x-1 transition-all duration-200 inline-block"
                 >
                   Browse Pools

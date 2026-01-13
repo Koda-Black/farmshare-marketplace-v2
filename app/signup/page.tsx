@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -559,10 +560,9 @@ export default function SignupPage() {
                     Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <PasswordInput
                       id="password"
-                      type="password"
                       placeholder="••••••••"
                       value={formData.password}
                       onChange={(e) =>
@@ -586,10 +586,9 @@ export default function SignupPage() {
                     Confirm Password
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <PasswordInput
                       id="confirmPassword"
-                      type="password"
                       placeholder="••••••••"
                       value={formData.confirmPassword}
                       onChange={(e) =>

@@ -15,6 +15,7 @@ export function middleware(req: NextRequest) {
     /^\/auth/,
     /^\/marketplace/,
     /^\/pools/,
+    /^\/buyer\/pool\/[^/]+$/, // Allow public access to pool details page
     /^\/vendor\/(?!dashboard|settings|orders|analytics).*/, // public vendor pages
     /^\/admin\/login/, // Admin login is public
   ];
@@ -33,7 +34,10 @@ export function middleware(req: NextRequest) {
     // Parse admin cookie to verify admin role
     try {
       const parsedAdmin = JSON.parse(adminCookie);
-      if (!parsedAdmin?.isAdminAuthenticated || parsedAdmin?.admin?.role !== 'admin') {
+      if (
+        !parsedAdmin?.isAdminAuthenticated ||
+        parsedAdmin?.admin?.role !== "admin"
+      ) {
         url.pathname = "/admin/login";
         return NextResponse.redirect(url);
       }

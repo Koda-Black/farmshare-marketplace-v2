@@ -76,20 +76,53 @@ export interface UnbanUserDto {
   userId: string;
 }
 
-export interface Verification {
+export interface VerificationStep {
   id: string;
-  userId: string;
   step: string;
   status: string;
   details: any;
+  externalReference?: string;
   createdAt: string;
   expiresAt?: string;
+}
+
+export interface VerificationDocuments {
+  govtId: {
+    type: string | null;
+    number: string | null;
+    files: string[];
+  };
+  business: {
+    registrationNumber: string | null;
+  };
+  tax: {
+    taxId: string | null;
+  };
+  bank: {
+    accountId: string | null;
+    bankCode: string | null;
+    bankName: string | null;
+    accountName: string | null;
+    verified: boolean;
+  };
+}
+
+export interface Verification {
+  id: string;
+  userId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  steps: VerificationStep[];
+  documents: VerificationDocuments;
   user: {
     id: string;
     email: string;
     name: string;
+    phone?: string;
     role: string;
     verificationStatus: string;
+    avatarUrl?: string;
   };
 }
 
@@ -676,9 +709,7 @@ class AdminService {
   /**
    * Get user growth metrics for charts
    */
-  async getUserGrowthMetrics(
-    period: string = "month"
-  ): Promise<
+  async getUserGrowthMetrics(period: string = "month"): Promise<
     Array<{
       name: string;
       month: string;
@@ -820,6 +851,234 @@ class AdminService {
       console.error("Get system health failed:", error);
       throw new Error(
         error.response?.data?.message || "Failed to get system health"
+      );
+    }
+  }
+
+  // ==================== PAYOUT MANAGEMENT ====================
+
+  /**
+   * Get all payouts with filtering
+   */
+  async getPayouts(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    vendorId?: string;
+  }): Promise<{
+    payouts: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    try {
+      const response = await httpRequest.get<{
+        payouts: any[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>("/admin/payouts", { params });
+      return response;
+    } catch (error: any) {
+      console.error("Get payouts failed:", error);
+      throw new Error(error.response?.data?.message || "Failed to get payouts");
+    }
+  }
+
+  /**
+   * Get vendor payout statistics
+   */
+  async getVendorPayoutStats(params?: {
+    startDate?: string;
+    endDate?: string;
+  }): Promise<{
+    summary: {
+      totalVendorsPaid: number;
+      totalPayoutCount: number;
+      totalAmountPaidOut: number;
+      totalPlatformFeesCollected: number;
+      platformFeeRate: string;
+    };
+    pending: {
+      count: number;
+      amount: number;
+      estimatedFees: number;
+    };
+    vendorBreakdown: any[];
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+  }> {
+    try {
+      const response = await httpRequest.get<any>("/admin/payouts/stats", {
+        params,
+      });
+      return response;
+    } catch (error: any) {
+      console.error("Get vendor payout stats failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to get vendor payout stats"
+      );
+    }
+  }
+
+  /**
+   * Simulate payout calculation for a pool
+   */
+  async simulatePayout(poolId: string): Promise<{
+    pool: any;
+    vendor: any;
+    escrow: {
+      totalHeld: number;
+      withheldAmount: number;
+      alreadyReleased: number;
+      availableForPayout: number;
+    };
+    calculation: {
+      platformFeeRate: string;
+      platformFee: number;
+      netPayoutToVendor: number;
+    };
+    buyerBreakdown: any[];
+    canPayout: boolean;
+    vendorBankConfigured: boolean;
+  }> {
+    try {
+      const response = await httpRequest.post<any>("/admin/payouts/simulate", {
+        poolId,
+      });
+      return response;
+    } catch (error: any) {
+      console.error("Simulate payout failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to simulate payout"
+      );
+    }
+  }
+
+  /**
+   * Initiate payout to vendor
+   */
+  async initiatePayout(
+    poolId: string,
+    notes?: string
+  ): Promise<{
+    message: string;
+    payout: {
+      transferReference: string;
+      amount: number;
+      platformFee: number;
+      vendor: string;
+      status: string;
+    };
+  }> {
+    try {
+      const response = await httpRequest.post<any>("/admin/payouts/initiate", {
+        poolId,
+        notes,
+      });
+      return response;
+    } catch (error: any) {
+      console.error("Initiate payout failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to initiate payout"
+      );
+    }
+  }
+
+  // ============================================================================
+  // NEWSLETTER METHODS
+  // ============================================================================
+
+  /**
+   * Get newsletter statistics
+   */
+  async getNewsletterStats(): Promise<{
+    totalActive: number;
+    totalInactive: number;
+    total: number;
+    recentSubscribers: number;
+    growthRate: string | number;
+  }> {
+    try {
+      const response = await httpRequest.get<any>("/newsletter/stats");
+      return response;
+    } catch (error: any) {
+      console.error("Get newsletter stats failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to get newsletter stats"
+      );
+    }
+  }
+
+  /**
+   * Get newsletter subscribers
+   */
+  async getNewsletterSubscribers(params?: {
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
+  }): Promise<{
+    subscribers: Array<{
+      id: string;
+      email: string;
+      name?: string;
+      source: string;
+      tags: string[];
+      isActive: boolean;
+      subscribedAt: string;
+      unsubscribedAt?: string;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasMore: boolean;
+    };
+  }> {
+    try {
+      const response = await httpRequest.get<any>("/newsletter/subscribers", {
+        params,
+      });
+      return response;
+    } catch (error: any) {
+      console.error("Get newsletter subscribers failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to get newsletter subscribers"
+      );
+    }
+  }
+
+  /**
+   * Send newsletter email
+   */
+  async sendNewsletter(dto: {
+    subject: string;
+    htmlContent: string;
+    textContent?: string;
+    targetTags?: string[];
+    testMode?: boolean;
+  }): Promise<{
+    message: string;
+    subject: string;
+    sentCount?: number;
+    failedCount?: number;
+    totalRecipients?: number;
+    recipientCount?: number;
+    testRecipients?: string[];
+    htmlPreview?: string;
+  }> {
+    try {
+      const response = await httpRequest.post<any>("/newsletter/send", dto);
+      return response;
+    } catch (error: any) {
+      console.error("Send newsletter failed:", error);
+      throw new Error(
+        error.response?.data?.message || "Failed to send newsletter"
       );
     }
   }

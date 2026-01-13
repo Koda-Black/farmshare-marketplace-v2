@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import Cookies from "js-cookie";
-import { Notification as BackendNotification, NotificationType, NotificationMedium } from "./notifications.types";
+import {
+  Notification as BackendNotification,
+  NotificationType,
+  NotificationMedium,
+} from "./notifications.types";
 
 export type UserRole = "vendor" | "buyer" | "admin";
 
@@ -101,6 +105,7 @@ export interface AdminDashboard {
     total: number;
     vendors: number;
     buyers: number;
+    verifiedVendors: number;
     banned: number;
     probation: number;
     newThisWeek: number;
@@ -177,7 +182,7 @@ export interface Dispute {
   poolId: string;
   raisedByUserId: string;
   reason: string;
-  status: 'open' | 'in_review' | 'resolved' | 'rejected';
+  status: "open" | "in_review" | "resolved" | "rejected";
   evidenceFiles: string[];
   complainantCount: number;
   resolutionNotes?: string;
@@ -204,7 +209,7 @@ export interface DisputeStatistics {
 export interface PaymentMethod {
   id: string;
   userId: string;
-  method: 'STRIPE' | 'PAYSTACK';
+  method: "STRIPE" | "PAYSTACK";
   stripeSessionId?: string;
   paystackRef?: string;
   isActive: boolean;
@@ -218,8 +223,8 @@ export interface Transaction {
   poolId: string;
   amount: number;
   fees: number;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED';
-  type: 'PAYMENT' | 'ESCROW_HOLD' | 'ESCROW_RELEASE' | 'REFUND';
+  status: "PENDING" | "SUCCESS" | "FAILED";
+  type: "PAYMENT" | "ESCROW_HOLD" | "ESCROW_RELEASE" | "REFUND";
   externalTxnId?: string;
   metadata?: any;
   createdAt: string;
@@ -267,13 +272,13 @@ export interface NotificationPreferences {
 
 export interface DeviceRegistration {
   token: string;
-  platform: 'web' | 'ios' | 'android';
+  platform: "web" | "ios" | "android";
   registeredAt: string;
 }
 
 export interface QueueJobStatus {
   jobId: string;
-  status: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed';
+  status: "waiting" | "active" | "completed" | "failed" | "delayed";
   progress: number;
   data?: any;
   error?: string;
@@ -323,7 +328,11 @@ interface AppState {
   registeredDevices: DeviceRegistration[];
 
   // Notification Actions
-  setAppNotifications: (notifications: AppNotification[], total: number, hasMore: boolean) => void;
+  setAppNotifications: (
+    notifications: AppNotification[],
+    total: number,
+    hasMore: boolean
+  ) => void;
   addAppNotification: (notification: AppNotification) => void;
   markAppNotificationAsRead: (id: string) => void;
   markAllAppNotificationsAsRead: () => void;
@@ -436,58 +445,94 @@ export const useStore = create<AppState>()(
       isAuthenticated: false,
       setUser: (user) => {
         // Normalize role to lowercase if it exists
-        const normalizedUser = user ? {
-          ...user,
-          role: user.role?.toLowerCase()
-        } : null;
+        const normalizedUser = user
+          ? {
+              ...user,
+              role: user.role?.toLowerCase(),
+            }
+          : null;
 
         set({ user: normalizedUser, isAuthenticated: !!normalizedUser });
 
         if (typeof window !== "undefined") {
           if (normalizedUser) {
+            // SECURITY: Set secure cookie options
+            const isProduction = process.env.NODE_ENV === "production";
             Cookies.set(
               "farmshare-auth",
               JSON.stringify({ user: normalizedUser, isAuthenticated: true }),
-              { expires: 7 }
+              {
+                expires: 7,
+                secure: isProduction, // Only send over HTTPS in production
+                sameSite: "Strict", // Prevent CSRF attacks
+                path: "/",
+              }
             );
           } else {
             Cookies.remove("farmshare-auth");
           }
         }
       },
-      logout: () =>
+      logout: () => {
+        // Clear auth cookie
+        if (typeof window !== "undefined") {
+          Cookies.remove("farmshare-auth", { path: "/" });
+        }
         set({
           user: null,
           isAuthenticated: false,
           notifications: [],
+          unreadCount: 0,
+          appNotifications: [],
+          appNotificationsUnreadCount: 0,
+          appNotificationsTotal: 0,
+          appNotificationsPage: 1,
+          appNotificationsHasMore: true,
+          notificationPreferences: null,
+          registeredDevices: [],
           userEscrows: [],
           userDisputes: [],
           userPaymentMethods: null,
           userTransactions: [],
           paymentStats: null,
           vendorEarnings: null,
-        }),
+        });
+      },
 
       // ==================== ADMIN AUTH ====================
       admin: null,
       isAdminAuthenticated: false,
       setAdmin: (admin) => {
-        const isAuthenticated = !!(admin && (admin.isAuthenticated || admin.accessToken));
+        const isAuthenticated = !!(
+          admin &&
+          (admin.isAuthenticated || admin.accessToken)
+        );
         set({ admin, isAdminAuthenticated: isAuthenticated });
 
         if (typeof window !== "undefined") {
           if (admin && isAuthenticated) {
+            // SECURITY: Set secure cookie options for admin
+            const isProduction = process.env.NODE_ENV === "production";
             Cookies.set(
               "farmshare-admin-auth",
               JSON.stringify({ admin, isAdminAuthenticated: true }),
-              { expires: 1 } // Admin sessions last 1 day
+              {
+                expires: 1, // Admin sessions last 1 day (stricter)
+                secure: isProduction, // Only send over HTTPS in production
+                sameSite: "Strict", // Prevent CSRF attacks
+                path: "/",
+              }
             );
           } else {
             Cookies.remove("farmshare-admin-auth");
           }
         }
       },
-      adminLogout: () =>
+      adminLogout: () => {
+        // Clear admin auth cookie
+        if (typeof window !== "undefined") {
+          Cookies.remove("farmshare-admin-auth", { path: "/" });
+        }
         set({
           admin: null,
           isAdminAuthenticated: false,
@@ -496,7 +541,8 @@ export const useStore = create<AppState>()(
           managedUsers: [],
           managedDisputes: [],
           disputeStats: null,
-        }),
+        });
+      },
 
       // ==================== THEME ====================
       theme: "light",
@@ -568,7 +614,9 @@ export const useStore = create<AppState>()(
 
       addAppNotification: (notification) =>
         set((state) => {
-          const isDuplicate = state.appNotifications.some((n) => n.id === notification.id);
+          const isDuplicate = state.appNotifications.some(
+            (n) => n.id === notification.id
+          );
           if (isDuplicate) return state;
 
           const newUnreadCount = notification.read
@@ -584,7 +632,9 @@ export const useStore = create<AppState>()(
 
       markAppNotificationAsRead: (id) =>
         set((state) => {
-          const wasUnread = state.appNotifications.find((n) => n.id === id && !n.read);
+          const wasUnread = state.appNotifications.find(
+            (n) => n.id === id && !n.read
+          );
           return {
             appNotifications: state.appNotifications.map((n) =>
               n.id === id ? { ...n, read: true } : n
@@ -597,7 +647,10 @@ export const useStore = create<AppState>()(
 
       markAllAppNotificationsAsRead: () =>
         set((state) => ({
-          appNotifications: state.appNotifications.map((n) => ({ ...n, read: true })),
+          appNotifications: state.appNotifications.map((n) => ({
+            ...n,
+            read: true,
+          })),
           appNotificationsUnreadCount: 0,
         })),
 
@@ -641,7 +694,9 @@ export const useStore = create<AppState>()(
 
       unregisterDevice: (token) =>
         set((state) => ({
-          registeredDevices: state.registeredDevices.filter((d) => d.token !== token),
+          registeredDevices: state.registeredDevices.filter(
+            (d) => d.token !== token
+          ),
         })),
 
       clearNotifications: () =>
@@ -653,8 +708,7 @@ export const useStore = create<AppState>()(
           appNotificationsHasMore: true,
         }),
 
-      setQueueStats: (stats) =>
-        set({ queueStats: stats }),
+      setQueueStats: (stats) => set({ queueStats: stats }),
 
       setJobStatus: (jobId, status) =>
         set((state) => ({
@@ -692,7 +746,8 @@ export const useStore = create<AppState>()(
 
       // ==================== PENDING VERIFICATIONS ====================
       pendingVerifications: [],
-      setPendingVerifications: (verifications) => set({ pendingVerifications: verifications }),
+      setPendingVerifications: (verifications) =>
+        set({ pendingVerifications: verifications }),
 
       // ==================== MANAGED USERS ====================
       managedUsers: [],
@@ -742,7 +797,8 @@ export const useStore = create<AppState>()(
 
       // ==================== USER TRANSACTIONS ====================
       userTransactions: [],
-      setUserTransactions: (transactions) => set({ userTransactions: transactions }),
+      setUserTransactions: (transactions) =>
+        set({ userTransactions: transactions }),
       addUserTransaction: (transaction) =>
         set((state) => ({
           userTransactions: [transaction, ...state.userTransactions],

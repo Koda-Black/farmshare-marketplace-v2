@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Sparkles,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { CreatePoolModal } from "@/components/vendor/create-pool-modal";
 import { PoolCard } from "@/components/vendor/pool-card";
@@ -23,15 +24,38 @@ import { useStore } from "@/lib/store";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { httpRequest } from "@/lib/httpRequest";
 
 export default function VendorDashboardPage() {
   const user = useStore((state) => state.user);
   const pools = useStore((state) => state.pools);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [vendorPools, setVendorPools] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const isVerified =
     user?.verification_status === "verified" && user?.bank_verified;
+
+  // Fetch vendor's pools from API
+  const fetchVendorPools = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    try {
+      const response = await httpRequest.get(`/pools?vendorId=${user.id}`);
+      const data = response.data || response;
+      setVendorPools(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch vendor pools:", error);
+      setVendorPools([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchVendorPools();
+  }, [fetchVendorPools]);
 
   const copyProfileLink = async () => {
     const profileUrl = `${window.location.origin}/vendor/profile/${user?.id}`;
@@ -51,64 +75,23 @@ export default function VendorDashboardPage() {
   };
 
   const stats = {
-    totalPools: pools.length || 3,
-    activePools: pools.filter((p) => p.status === "active").length || 2,
-    totalRevenue: 450000,
-    totalBuyers: 24,
+    totalPools: vendorPools.length,
+    activePools: vendorPools.filter((p) => p.status === "active").length,
+    totalRevenue: vendorPools
+      .filter((p) => p.status === "completed")
+      .reduce((sum, p) => sum + (p.price_total || 0), 0),
+    totalBuyers: vendorPools.reduce((sum, p) => sum + (p.slots_filled || 0), 0),
+    avgFillRate:
+      vendorPools.length > 0
+        ? Math.round(
+            vendorPools.reduce((sum, p) => {
+              const fillRate =
+                p.slots_total > 0 ? (p.slots_filled / p.slots_total) * 100 : 0;
+              return sum + fillRate;
+            }, 0) / vendorPools.length
+          )
+        : 0,
   };
-
-  const mockPools = [
-    {
-      id: "pool_1",
-      vendor_id: user?.id || "",
-      product_name: "Premium Rice",
-      product_description: "50kg bags of premium quality rice",
-      slots_count: 10,
-      slots_filled: 8,
-      price_total: 500000,
-      price_per_slot: 50000,
-      allow_home_delivery: true,
-      home_delivery_cost: 5000,
-      delivery_deadline: new Date(
-        Date.now() + 3 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      status: "active" as const,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "pool_2",
-      vendor_id: user?.id || "",
-      product_name: "Organic Tomatoes",
-      product_description: "Fresh organic tomatoes - 25kg crates",
-      slots_count: 15,
-      slots_filled: 15,
-      price_total: 225000,
-      price_per_slot: 15000,
-      allow_home_delivery: false,
-      delivery_deadline: new Date(
-        Date.now() + 1 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      status: "full" as const,
-      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "pool_3",
-      vendor_id: user?.id || "",
-      product_name: "Yellow Maize",
-      product_description: "100kg bags of yellow maize",
-      slots_count: 8,
-      slots_filled: 3,
-      price_total: 320000,
-      price_per_slot: 40000,
-      allow_home_delivery: true,
-      home_delivery_cost: 8000,
-      delivery_deadline: new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-      status: "active" as const,
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
 
   return (
     <div className="container px-[30px] lg:px-[60px] py-10">
@@ -249,7 +232,7 @@ export default function VendorDashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">87%</div>
+              <div className="text-3xl font-bold">{stats.avgFillRate}%</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Pool completion rate
               </p>
@@ -287,15 +270,38 @@ export default function VendorDashboardPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockPools.map((pool, index) => (
-              <div
-                key={pool.id}
-                className="animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <PoolCard pool={pool} />
+            {loading ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
               </div>
-            ))}
+            ) : vendorPools.length === 0 ? (
+              <div className="col-span-full text-center py-12">
+                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">No pools yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first pool to start selling
+                </p>
+                {isVerified && (
+                  <Button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="bg-accent hover:bg-accent/90"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Pool
+                  </Button>
+                )}
+              </div>
+            ) : (
+              vendorPools.map((pool, index) => (
+                <div
+                  key={pool.id}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <PoolCard pool={pool} />
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -15,13 +15,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { useNotifications } from "@/hooks/use-notifications";
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { createNotification } = useNotifications();
   const [isVerifying, setIsVerifying] = useState(true);
   const [paymentData, setPaymentData] = useState<any>(null);
   const [lastPoolId, setLastPoolId] = useState<string | null>(null);
@@ -98,20 +96,7 @@ export default function PaymentSuccessPage() {
             description:
               "You have successfully joined the pool. You will receive confirmation details shortly.",
           });
-
-          // Create in-app notification
-          createNotification({
-            type: "PAYMENT",
-            title: "Payment Successful",
-            message: `Your payment of ₦${(
-              data.amount / 100
-            ).toLocaleString()} was processed successfully. You have been added to the pool.`,
-            metadata: {
-              reference,
-              subscriptionId: data.subscriptionId,
-              alreadyProcessed: data.alreadyProcessed,
-            },
-          });
+          // Backend sends in-app notification automatically
         } else {
           throw new Error(data.message || "Payment verification failed");
         }

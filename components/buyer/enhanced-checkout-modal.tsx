@@ -32,6 +32,11 @@ import {
   InitPaymentDto,
 } from "@/lib/enhanced-payment.service";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/lib/store";
+
+// Delivery fee constants
+const INTRA_STATE_DELIVERY_FEE = 5000; // Same state as vendor
+const INTER_STATE_DELIVERY_FEE = 10000; // Different state from vendor
 
 interface EnhancedCheckoutModalProps {
   open: boolean;
@@ -43,6 +48,7 @@ interface EnhancedCheckoutModalProps {
     allow_home_delivery: boolean;
     home_delivery_cost?: number;
     pickup_location: string;
+    vendor_state?: string; // Vendor's state for delivery fee calculation
   };
   slots?: number;
 }
@@ -55,6 +61,7 @@ export function EnhancedCheckoutModal({
 }: EnhancedCheckoutModalProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useStore();
   const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">(
     "pickup"
   );
@@ -68,12 +75,26 @@ export function EnhancedCheckoutModal({
   );
   const [paymentData, setPaymentData] = useState<any>(null);
 
+  // Determine if buyer is in the same state as vendor
+  const userState = user?.state || "";
+  const vendorState = pool.vendor_state || "";
+  const isSameState =
+    userState &&
+    vendorState &&
+    userState.toLowerCase() === vendorState.toLowerCase();
+
   const slotPrice = pool.price_per_slot;
+  // Use standardized delivery fees: ₦5,000 intra-state, ₦10,000 inter-state
   const deliveryCost =
-    deliveryMethod === "delivery" ? pool.home_delivery_cost || 0 : 0;
+    deliveryMethod === "delivery"
+      ? isSameState
+        ? INTRA_STATE_DELIVERY_FEE
+        : INTER_STATE_DELIVERY_FEE
+      : 0;
   const subtotal = slotPrice * selectedSlots;
-  const platformFee = subtotal * 0.02; // 2% platform fee for buyers
-  const total = subtotal + deliveryCost + platformFee;
+  // Platform fee is 2% of slot cost only (not including delivery)
+  const platformFee = Math.round(subtotal * 0.02);
+  const total = subtotal + platformFee + deliveryCost;
   const maxSlots = 10; // Maximum slots a user can purchase at once
 
   const handleCheckout = async () => {
@@ -103,12 +124,14 @@ export function EnhancedCheckoutModal({
       const poolId = Array.isArray(pool.id) ? pool.id[0] : pool.id;
 
       // Initiate payment with backend
+      // waybillWithin = intra-state delivery (₦5,000)
+      // waybillOutside = inter-state delivery (₦10,000)
       const paymentRequestData: InitPaymentDto = {
         method: paymentMethod,
         poolId: poolId,
         slots: selectedSlots,
-        waybillWithin: deliveryMethod === "pickup",
-        waybillOutside: deliveryMethod === "delivery",
+        waybillWithin: deliveryMethod === "delivery" && isSameState, // Intra-state delivery
+        waybillOutside: deliveryMethod === "delivery" && !isSameState, // Inter-state delivery
       };
 
       const response = await enhancedPaymentService.initiatePayment(
@@ -327,7 +350,14 @@ export function EnhancedCheckoutModal({
                           Delivered to your address
                         </p>
                         <p className="text-sm font-medium mt-1">
-                          +₦{pool.home_delivery_cost?.toLocaleString()}
+                          +₦
+                          {(isSameState
+                            ? INTRA_STATE_DELIVERY_FEE
+                            : INTER_STATE_DELIVERY_FEE
+                          ).toLocaleString()}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({isSameState ? "Same state" : "Different state"})
+                          </span>
                         </p>
                       </Label>
                     </div>
@@ -413,21 +443,26 @@ export function EnhancedCheckoutModal({
               <h3 className="font-semibold">Payment Summary</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Slot price</span>
-                  <span>₦{slotPrice.toLocaleString()}</span>
+                  <span className="text-muted-foreground">
+                    Slot price × {selectedSlots}
+                  </span>
+                  <span>₦{subtotal.toLocaleString()}</span>
                 </div>
-                {deliveryCost > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery fee</span>
-                    <span>₦{deliveryCost.toLocaleString()}</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     Platform fee (2%)
                   </span>
                   <span>₦{platformFee.toLocaleString()}</span>
                 </div>
+                {deliveryCost > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Delivery fee (
+                      {isSameState ? "intra-state" : "inter-state"})
+                    </span>
+                    <span>₦{deliveryCost.toLocaleString()}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-base font-semibold">
                   <span>Total</span>

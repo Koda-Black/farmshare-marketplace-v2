@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
   Sparkles,
   CheckCircle,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 import {
   Table,
@@ -28,73 +29,131 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useStore } from "@/lib/store";
+import { httpRequest } from "@/lib/httpRequest";
+import { useToast } from "@/hooks/use-toast";
+
+interface Subscription {
+  id: string;
+  poolId: string;
+  userId: string;
+  slots: number;
+  deliveryFee: number;
+  paymentRef: string;
+  createdAt: string;
+  pool: {
+    id: string;
+    pricePerSlot: string;
+    slotsCount: number;
+    status: string;
+    deliveryDeadlineUtc: string;
+    product: {
+      name: string;
+      imageUrl?: string;
+    };
+    vendor: {
+      name: string;
+    };
+  };
+}
+
+interface Dispute {
+  id: string;
+  poolId: string;
+  status: string;
+  reason: string;
+  createdAt: string;
+  updatedAt: string;
+  pool?: {
+    product?: {
+      name: string;
+    };
+  };
+}
 
 export default function BuyerDashboardPage() {
   const { user } = useStore();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState({
     activePools: 0,
     totalInvested: 0,
     pendingDisputes: 0,
     completedPools: 0,
   });
+  const [mySubscriptions, setMySubscriptions] = useState<Subscription[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
 
-  // Mock data - in real implementation, this would come from API
-  const [myPools, setMyPools] = useState([
-    {
-      id: "pool_1",
-      product_name: "Organic Tomatoes",
-      vendor_name: "Green Valley Farms",
-      slots_count: 15,
-      slots_filled: 15,
-      my_slots: 2,
-      price_per_slot: 15000,
-      status: "completed",
-      expected_return: 18000,
-      created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: "pool_2",
-      product_name: "Fresh Vegetables Mix",
-      vendor_name: "FarmCo Supplies",
-      slots_count: 20,
-      slots_filled: 18,
-      my_slots: 1,
-      price_per_slot: 12000,
-      status: "active",
-      expected_return: 14400,
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-  ]);
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      // Fetch user's subscriptions (pools they've joined)
+      const subscriptionsData = await httpRequest.get<Subscription[]>(
+        "/pools/user/subscriptions"
+      );
+      const subscriptions = Array.isArray(subscriptionsData)
+        ? subscriptionsData
+        : [];
+      setMySubscriptions(subscriptions);
 
-  const [disputes, setDisputes] = useState([
-    {
-      id: "dispute_1",
-      pool_id: "pool_3",
-      pool_name: "Premium Rice",
-      status: "open",
-      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      last_updated: new Date(
-        Date.now() - 1 * 24 * 60 * 60 * 1000
-      ).toISOString(),
-    },
-  ]);
+      // Fetch user's disputes
+      let disputesData: Dispute[] = [];
+      try {
+        const response = await httpRequest.get<Dispute[]>("/disputes/my");
+        disputesData = Array.isArray(response) ? response : [];
+      } catch (e) {
+        // Disputes endpoint may not exist yet
+        console.warn("Could not fetch disputes:", e);
+      }
+      setDisputes(disputesData);
+
+      // Calculate stats from live data
+      const activePoolsCount = subscriptions.filter(
+        (s) => s.pool?.status === "OPEN" || s.pool?.status === "FILLED"
+      ).length;
+
+      const completedPoolsCount = subscriptions.filter(
+        (s) => s.pool?.status === "DELIVERED" || s.pool?.status === "COMPLETED"
+      ).length;
+
+      // Ensure all values are properly converted to numbers before arithmetic
+      const totalInvested = subscriptions.reduce((sum, sub) => {
+        const pricePerSlot = Number(sub.pool?.pricePerSlot) || 0;
+        const slots = Number(sub.slots) || 0;
+        const deliveryFee = Number(sub.deliveryFee) || 0;
+        return sum + slots * pricePerSlot + deliveryFee;
+      }, 0);
+
+      const pendingDisputesCount = disputesData.filter(
+        (d) => d.status === "OPEN" || d.status === "PENDING"
+      ).length;
+
+      setStats({
+        activePools: activePoolsCount,
+        totalInvested,
+        pendingDisputes: pendingDisputesCount,
+        completedPools: completedPoolsCount,
+      });
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [toast]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchDashboardData();
+  };
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setStats({
-        activePools: myPools.filter((p) => p.status === "active").length,
-        totalInvested: myPools.reduce(
-          (sum, pool) => sum + pool.my_slots * pool.price_per_slot,
-          0
-        ),
-        pendingDisputes: disputes.filter((d) => d.status === "open").length,
-        completedPools: myPools.filter((p) => p.status === "completed").length,
-      });
-      setIsLoading(false);
-    }, 1000);
-  }, []);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   if (isLoading) {
     return (
@@ -139,6 +198,17 @@ export default function BuyerDashboardPage() {
               Browse Pools
               <ArrowRight className="h-4 w-4" />
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="ml-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
           </Button>
         </div>
       </div>
@@ -325,7 +395,7 @@ export default function BuyerDashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>My Pool Investments</CardTitle>
             <Button variant="outline" size="sm" asChild>
-              <Link href="/buyer/marketplace">View All</Link>
+              <Link href="/buyer/orders">View All</Link>
             </Button>
           </CardHeader>
           <CardContent>
@@ -336,38 +406,49 @@ export default function BuyerDashboardPage() {
                   <TableHead>Vendor</TableHead>
                   <TableHead>My Slots</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Return</TableHead>
+                  <TableHead>Invested</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {myPools.slice(0, 5).map((pool) => (
-                  <TableRow key={pool.id}>
-                    <TableCell className="font-medium">
-                      {pool.product_name}
-                    </TableCell>
-                    <TableCell>{pool.vendor_name}</TableCell>
-                    <TableCell>
-                      {pool.my_slots}/{pool.slots_count}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          pool.status === "completed"
-                            ? "default"
-                            : pool.status === "active"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                      >
-                        {pool.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      ₦{pool.expected_return.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {myPools.length === 0 && (
+                {mySubscriptions.slice(0, 5).map((subscription) => {
+                  const pricePerSlot =
+                    Number(subscription.pool?.pricePerSlot) || 0;
+                  const slots = Number(subscription.slots) || 0;
+                  const deliveryFee = Number(subscription.deliveryFee) || 0;
+                  const invested = slots * pricePerSlot + deliveryFee;
+                  const status =
+                    subscription.pool?.status?.toLowerCase() || "pending";
+
+                  return (
+                    <TableRow key={subscription.id}>
+                      <TableCell className="font-medium">
+                        {subscription.pool?.product?.name || "Unknown Product"}
+                      </TableCell>
+                      <TableCell>
+                        {subscription.pool?.vendor?.name || "Unknown Vendor"}
+                      </TableCell>
+                      <TableCell>
+                        {subscription.slots}/
+                        {subscription.pool?.slotsCount || 0}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            status === "completed" || status === "delivered"
+                              ? "default"
+                              : status === "open" || status === "filled"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                        >
+                          {status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>₦{invested.toLocaleString()}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                {mySubscriptions.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={5}
@@ -393,29 +474,35 @@ export default function BuyerDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {disputes.map((dispute) => (
+              {disputes.slice(0, 5).map((dispute) => (
                 <div
                   key={dispute.id}
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex-1">
-                    <h4 className="font-medium">{dispute.pool_name}</h4>
+                    <h4 className="font-medium">
+                      {dispute.pool?.product?.name ||
+                        `Dispute #${dispute.id.slice(0, 8)}`}
+                    </h4>
                     <p className="text-sm text-muted-foreground">
-                      Created{" "}
-                      {new Date(dispute.created_at).toLocaleDateString()}
+                      Created {new Date(dispute.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="text-right">
                     <Badge
                       variant={
-                        dispute.status === "open" ? "destructive" : "default"
+                        dispute.status === "OPEN" ||
+                        dispute.status === "PENDING"
+                          ? "destructive"
+                          : dispute.status === "RESOLVED"
+                          ? "default"
+                          : "secondary"
                       }
                     >
-                      {dispute.status}
+                      {dispute.status.toLowerCase()}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Updated{" "}
-                      {new Date(dispute.last_updated).toLocaleDateString()}
+                      Updated {new Date(dispute.updatedAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

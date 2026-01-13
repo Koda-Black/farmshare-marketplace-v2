@@ -33,11 +33,13 @@ export function WebcamCapture({
   };
 
   const videoConstraints = {
-    width: 1280,
-    height: 720,
-    // border-radius: 50,
+    width: 640,
+    height: 480,
     facingMode: "user",
   };
+
+  // Screenshot quality (0.0 to 1.0) - lower = smaller file size
+  const screenshotQuality = 0.7;
 
   return (
     <div className="space-y-4">
@@ -55,6 +57,7 @@ export function WebcamCapture({
             ref={webcamRef}
             audio={false}
             screenshotFormat="image/jpeg"
+            screenshotQuality={screenshotQuality}
             videoConstraints={videoConstraints}
             onUserMedia={() => setIsCameraReady(true)}
             className="h-full w-full object-cover"

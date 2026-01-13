@@ -166,7 +166,10 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={logout}
+                    onClick={() => {
+                      logout();
+                      router.push("/");
+                    }}
                     className="text-destructive cursor-pointer focus:text-destructive"
                   >
                     Log Out
@@ -327,6 +330,7 @@ export function Header() {
                       onClick={() => {
                         logout();
                         setMobileMenuOpen(false);
+                        router.push("/");
                       }}
                     >
                       Log Out
