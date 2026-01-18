@@ -125,6 +125,9 @@ export default function OAuthCallback() {
           { expires: 7, sameSite: "lax" },
         );
 
+        // Clear any stored signup role
+        localStorage.removeItem("farmshare_google_signup_role");
+
         // Redirect based on role
         const userRole = roleParam || decoded.role || "buyer";
         if (userRole === "vendor") {
@@ -147,7 +150,13 @@ export default function OAuthCallback() {
       try {
         const data = JSON.parse(decodeURIComponent(googleDataParam));
         setGoogleData(data);
-        setRole((roleParam as UserRole) || "buyer");
+
+        // Get role from localStorage (stored before Google redirect)
+        const storedRole = localStorage.getItem(
+          "farmshare_google_signup_role",
+        ) as UserRole;
+        setRole(storedRole || "buyer");
+
         setMode("complete_signup");
       } catch (err) {
         setError("Invalid Google data. Please try again.");
@@ -210,6 +219,9 @@ export default function OAuthCallback() {
         JSON.stringify({ state: { user: userData } }),
         { expires: 7, sameSite: "lax" },
       );
+
+      // Clear stored role
+      localStorage.removeItem("farmshare_google_signup_role");
 
       // Redirect based on role - vendors go to verification
       router.push(response.redirectTo);

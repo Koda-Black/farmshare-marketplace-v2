@@ -644,8 +644,9 @@ export default function SignupPage() {
                   disabled={isGoogleLoading}
                   onClick={() => {
                     setIsGoogleLoading(true);
-                    // Pass role and mode to Google OAuth
-                    window.location.href = `${httpRequest.baseURL}${httpRequest.endpoints.auth.google}?role=${role.toUpperCase()}&mode=signup`;
+                    // Store role in localStorage before redirecting to Google
+                    localStorage.setItem("farmshare_google_signup_role", role);
+                    window.location.href = `${httpRequest.baseURL}/auth/google`;
                   }}
                 >
                   {isGoogleLoading ? (

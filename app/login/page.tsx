@@ -284,8 +284,9 @@ export default function LoginPage() {
                   disabled={isGoogleLoading}
                   onClick={() => {
                     setIsGoogleLoading(true);
-                    // Pass mode=login to check if account exists first
-                    window.location.href = `${httpRequest.baseURL}/auth/google?mode=login`;
+                    // Clear any stored signup role since this is login
+                    localStorage.removeItem("farmshare_google_signup_role");
+                    window.location.href = `${httpRequest.baseURL}/auth/google`;
                   }}
                 >
                   {isGoogleLoading ? (
