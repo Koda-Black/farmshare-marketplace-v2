@@ -644,7 +644,8 @@ export default function SignupPage() {
                   disabled={isGoogleLoading}
                   onClick={() => {
                     setIsGoogleLoading(true);
-                    window.location.href = `${httpRequest.baseURL}${httpRequest.endpoints.auth.google}`;
+                    // Pass role and mode to Google OAuth
+                    window.location.href = `${httpRequest.baseURL}${httpRequest.endpoints.auth.google}?role=${role.toUpperCase()}&mode=signup`;
                   }}
                 >
                   {isGoogleLoading ? (
