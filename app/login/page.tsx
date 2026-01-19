@@ -41,12 +41,38 @@ interface LoginResponse {
   };
 }
 
+const GoogleIcon = () => (
+  <svg
+    className="mr-2 h-4 w-4"
+    viewBox="0 0 533.5 544.3"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M533.5 278.4c0-17.4-1.4-34.1-4.1-50.4H272v95.4h146.9c-6.3 34.2-25.2 63.1-53.9 82.5v68h86.7c50.8-46.8 81.8-115.8 81.8-195.5z"
+      fill="#4285f4"
+    />
+    <path
+      d="M272 544.3c72.6 0 133.6-24 178.1-65.4l-86.7-68c-24.1 16.2-55 25.7-91.4 25.7-70.3 0-129.9-47.5-151.3-111.2H29.5v69.7C73.5 482 165.7 544.3 272 544.3z"
+      fill="#34a853"
+    />
+    <path
+      d="M120.7 325.4c-10.1-30.2-10.1-62.6 0-92.8v-69.7H29.5c-39.8 79.4-39.8 173 0 252.4l91.2-69.9z"
+      fill="#fbbc04"
+    />
+    <path
+      d="M272 107.7c39.6 0 75 13.6 103.1 40.2l77.3-77.3C405.6 24 344.6 0 272 0 165.7 0 73.5 62.3 29.5 162.9l91.2 69.7C142.1 155.2 201.7 107.7 272 107.7z"
+      fill="#ea4335"
+    />
+  </svg>
+);
+
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useStore((state) => state.setUser);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,7 +84,7 @@ export default function LoginPage() {
       const { accessToken, refreshToken, user } =
         await httpRequest.post<LoginResponse>(
           httpRequest.endpoints.auth.login,
-          { email, password }
+          { email, password },
         );
 
       // Destructure user data
@@ -82,7 +108,7 @@ export default function LoginPage() {
         {
           expires: 7, // 7 days
           sameSite: "lax",
-        }
+        },
       );
 
       // Redirect based on role
@@ -236,6 +262,42 @@ export default function LoginPage() {
                     <>
                       Sign In
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+                </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 bg-background border-border hover:bg-muted/50 flex items-center justify-center gap-2 rounded-xl transition-colors"
+                  disabled={isGoogleLoading}
+                  onClick={() => {
+                    setIsGoogleLoading(true);
+                    // Clear any stored signup role since this is login
+                    localStorage.removeItem("farmshare_google_signup_role");
+                    window.location.href = `${httpRequest.baseURL}/auth/google`;
+                  }}
+                >
+                  {isGoogleLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <GoogleIcon />
+                      Sign in with Google
                     </>
                   )}
                 </Button>
